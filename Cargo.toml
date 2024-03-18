@@ -1,0 +1,16 @@
+[package]
+name = "bp-pp"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Oleg Fomenko <oleg.fomenko@distributedlab.com>" ]
+license = "MIT"
+description = "Rust library for Bulletproofs++ - range proof protocol in discret loggarithm setting"
+keywords = [ "crypto", "bulletproofs", "rangeproofs", "zeroknowledge", "zkp" ]
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+k256 = "0.13.3"
+sha2 = "0.10.8"
+merlin = "3.0.0"
