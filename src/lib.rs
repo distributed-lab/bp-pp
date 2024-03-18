@@ -1,4 +1,3 @@
-pub mod fs;
 pub mod wnla;
 mod util;
 

@@ -4,7 +4,6 @@ use k256::elliptic_curve::group::GroupEncoding;
 use k256::elliptic_curve::group::prime::PrimeCurveAffine;
 use k256::elliptic_curve::PrimeField;
 use merlin::Transcript;
-use crate::fs::FiatShamir;
 use crate::util::*;
 
 pub struct WNLAPublic {
@@ -161,7 +160,6 @@ mod tests {
     use k256::elliptic_curve::Group;
     use k256::elliptic_curve::rand_core::OsRng;
     use k256::Scalar;
-    use crate::fs::SHA2FS;
     use super::*;
 
     #[test]
