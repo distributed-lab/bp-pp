@@ -1,5 +1,6 @@
 pub mod wnla;
 mod util;
+mod circuit;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
