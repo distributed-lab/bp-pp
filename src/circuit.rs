@@ -20,42 +20,67 @@ pub trait Partition {
     fn map(typ: PartitionType, index: usize) -> Option<usize>;
 }
 
+#[derive(Debug)]
+pub struct Proof {
+    pub c_l: ProjectivePoint,
+    pub c_r: ProjectivePoint,
+    pub c_o: ProjectivePoint,
+    pub c_s: ProjectivePoint,
+    pub r: Vec<ProjectivePoint>,
+    pub x: Vec<ProjectivePoint>,
+    pub l: Vec<Scalar>,
+    pub n: Vec<Scalar>,
+}
+
+pub struct Witness {
+    // k*dim_nv
+    pub v: Vec<Vec<Scalar>>,
+    // k
+    pub s_v: Vec<Scalar>,
+    // dim_nm
+    pub w_l: Vec<Scalar>,
+    // dim_nm
+    pub w_r: Vec<Scalar>,
+    // dim_no
+    pub w_o: Vec<Scalar>,
+}
+
 pub struct ArithmeticCircuit {
     pub dim_nm: usize,
     pub dim_no: usize,
     pub k: usize,
 
-    // n_l = n_v * k
+    // dim_nl = dim_nv * k
     pub dim_nl: usize,
     // Count of witness vectors v.
     pub dim_nv: usize,
-    // n_w = n_m + n_m + n_o
+    // dim_nw = dim_nm + dim_nm + n_o
     pub dim_nw: usize,
 
     pub g: ProjectivePoint,
 
-    // n_m
+    // dim_nm
     pub g_vec: Vec<ProjectivePoint>,
     // n_v+9
     pub h_vec: Vec<ProjectivePoint>,
 
-    // n_m * n_w
+    // dim_nm * dim_nw
     pub W_m: Vec<Vec<Scalar>>,
-    // n_l * n_w
+    // dim_nl * dim_nw
     pub W_l: Vec<Vec<Scalar>>,
 
-    // n_m
+    // dim_nm
     pub a_m: Vec<Scalar>,
-    // n_l
+    // dim_nl
     pub a_l: Vec<Scalar>,
 
     pub f_l: bool,
     pub f_m: bool,
 
     // Vectors of points that will be used in WNLA protocol
-    // 2^n - n_m
+    // 2^n - dim_nm
     pub g_vec_: Vec<ProjectivePoint>,
-    // 2^n - (n_v+9)
+    // 2^n - (dim_nv+9)
     pub h_vec_: Vec<ProjectivePoint>,
 }
 
@@ -542,28 +567,4 @@ impl ArithmeticCircuit {
 
         (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO)
     }
-}
-
-pub struct Proof {
-    pub c_l: ProjectivePoint,
-    pub c_r: ProjectivePoint,
-    pub c_o: ProjectivePoint,
-    pub c_s: ProjectivePoint,
-    pub r: Vec<ProjectivePoint>,
-    pub x: Vec<ProjectivePoint>,
-    pub l: Vec<Scalar>,
-    pub n: Vec<Scalar>,
-}
-
-pub struct Witness {
-    // k*Nv
-    pub v: Vec<Vec<Scalar>>,
-    // k
-    pub s_v: Vec<Scalar>,
-    // n_m
-    pub w_l: Vec<Scalar>,
-    // n_m
-    pub w_r: Vec<Scalar>,
-    // n_o
-    pub w_o: Vec<Scalar>,
 }

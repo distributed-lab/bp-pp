@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::ops::{Add, Mul, Sub};
 use k256::elliptic_curve::Field;
 use k256::Scalar;
@@ -19,31 +20,34 @@ pub fn reduce<T: Copy>(v: &Vec<T>) -> (Vec<T>, Vec<T>) {
     (res0, res1)
 }
 
+pub fn vector_extend<T: Copy + Default>(v: &Vec<T>, n: usize) -> Vec<T> {
+    (0..n).map(|i| if i < v.len() { v[i] } else { T::default() }).collect::<Vec<T>>()
+}
 
-pub fn weight_vector_mul<T: Copy + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, b: &Vec<Scalar>, weight: &Scalar) -> T {
-    let mut exp = weight.clone();
-    let mut result = a[0].mul(b[0].mul(exp));
+pub fn weight_vector_mul<T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, b: &Vec<Scalar>, weight: &Scalar) -> T {
+    let mut exp = Scalar::ONE;
+    let mut result = T::default();
 
-    (1..a.len()).
-        map(|i| {
-            exp = exp.mul(weight);
-            return a[i].mul(b[i].mul(&exp));
-        }).
-        collect::<Vec<T>>().
-        iter().
-        for_each(|x| result = result.add(*x));
+    let a_ext = vector_extend(a, max(a.len(), b.len()));
+    let b_ext = &vector_extend(b, max(a.len(), b.len()));
+
+    a_ext.iter().zip(b_ext).for_each(|(a_val, b_val)| {
+        exp = exp.mul(weight);
+        result = result.add(a_val.mul(b_val.mul(&exp)));
+    });
 
     return result;
 }
 
-pub fn vector_mul<T: Copy + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, b: &Vec<Scalar>) -> T {
-    let mut result = a[0].mul(b[0]);
+pub fn vector_mul<T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, b: &Vec<Scalar>) -> T {
+    let mut result = T::default();
 
-    (1..a.len()).
-        map(|i| a[i].mul(b[i])).
-        collect::<Vec<T>>().
-        iter().
-        for_each(|x| result = result.add(*x));
+    let a_ext = &vector_extend(a, max(a.len(), b.len()));
+    let b_ext = &vector_extend(b, max(a.len(), b.len()));
+
+    a_ext.iter().zip(b_ext).for_each(|(a_val, b_val)| {
+        result = result.add(a_val.mul(*b_val));
+    });
 
     return result;
 }
@@ -54,12 +58,16 @@ pub fn vector_mul_on_scalar<'a, T: Copy + Mul<&'a Scalar, Output=T>>(a: &Vec<T>,
 }
 
 
-pub fn vector_add<T: Copy + Add<Output=T>>(a: &Vec<T>, b: &Vec<T>) -> Vec<T> {
-    (0..a.len()).map(|i| a[i].add(b[i])).collect::<Vec<T>>()
+pub fn vector_add<T: Copy + Default + Add<Output=T>>( a: &Vec<T>,  b: &Vec<T>) -> Vec<T> {
+    let a_ext = &vector_extend(a, max(a.len(), b.len()));
+    let b_ext = &vector_extend(b, max(a.len(), b.len()));
+    a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.add(*b_val)).collect::<Vec<T>>()
 }
 
-pub fn vector_sub<'a, T: Copy + Sub<Output=T>>(a: &'a Vec<T>, b: &'a Vec<T>) -> Vec<T> {
-    (0..a.len()).map(|i| a[i].sub(b[i])).collect::<Vec<T>>()
+pub fn vector_sub<'a, T: Copy + Default + Sub<Output=T>>( a: &'a Vec<T>,  b: &'a Vec<T>) -> Vec<T> {
+    let a_ext = &vector_extend(a, max(a.len(), b.len()));
+    let b_ext = &vector_extend(b, max(a.len(), b.len()));
+    a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.sub(*b_val)).collect::<Vec<T>>()
 }
 
 pub fn e(v: &Scalar, n: usize) -> Vec<Scalar> {
@@ -76,8 +84,10 @@ pub fn pow(s: &Scalar, n: usize) -> Scalar {
     return s.pow(&[n as u64]);
 }
 
-pub fn vector_hadamard_mul<T: Copy + Mul<Scalar, Output=T>>(a: &Vec<T>, b: &Vec<Scalar>) -> Vec<T> {
-    a.iter().enumerate().map(|(i, x)| x.mul(b[i])).collect::<Vec<T>>()
+pub fn vector_hadamard_mul<T: Copy + Default + Mul<Scalar, Output=T>>( a: &Vec<T>,  b: &Vec<Scalar>) -> Vec<T> {
+    let a_ext = &vector_extend(a, max(a.len(), b.len()));
+    let b_ext = &vector_extend(b, max(a.len(), b.len()));
+    a.iter().zip(b).map(|(a_val, b_val)| a_val.mul(*b_val)).collect::<Vec<T>>()
 }
 
 pub fn vector_tensor_mul<'a, T: Copy + Mul<&'a Scalar, Output=T>>(a: &'a Vec<T>, b: &'a Vec<Scalar>) -> Vec<T> {
@@ -100,7 +110,7 @@ pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
     ).collect::<Vec<Vec<Scalar>>>()
 }
 
-pub fn vector_mul_on_matrix<T: Copy + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T> {
+pub fn vector_mul_on_matrix<T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T> {
     m.iter().map(|v| vector_mul(a, v)).collect::<Vec<T>>()
 }
 
