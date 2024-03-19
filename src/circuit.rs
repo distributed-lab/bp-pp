@@ -1,10 +1,11 @@
 use std::ops::{Add, Mul, Sub};
 use k256::{FieldBytes, ProjectivePoint, Scalar};
 use k256::elliptic_curve::group::GroupEncoding;
-use k256::elliptic_curve::{Field, PrimeField};
+use k256::elliptic_curve::PrimeField;
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use crate::util::*;
+use crate::wnla;
 use crate::wnla::WeightNormLinearArgument;
 
 #[derive(Clone, Copy)]
@@ -64,6 +65,144 @@ impl ArithmeticCircuit {
             g.mul(v[0]).
             add(self.h_vec[0].mul(s)).
             add(vector_mul(&self.h_vec[9..].to_vec(), &v[1..].to_vec()))
+    }
+
+    pub fn verify<T: RngCore + CryptoRng, P: Partition>(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
+        t.append_message(b"cl", proof.c_l.to_bytes().as_slice());
+        t.append_message(b"cr", proof.c_r.to_bytes().as_slice());
+        t.append_message(b"co", proof.c_o.to_bytes().as_slice());
+
+        for v_i in v.iter() {
+            t.append_message(b"v", v_i.to_bytes().as_slice());
+        }
+
+        let get_challenge = |label: &'static [u8], t: &mut Transcript| -> Scalar{
+            let mut buf = [0u8; 32];
+            t.challenge_bytes(label, &mut buf);
+            Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
+        };
+
+        let rho = get_challenge(b"rho",t);
+        let lambda = get_challenge(b"lambda",t);
+        let beta = get_challenge(b"beta",t);
+        let delta = get_challenge(b"delta",t);
+
+        let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
+        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
+
+        let mu = rho.mul(rho);
+
+        let mut lambda_vec = e(&lambda, self.dim_nl);
+        if self.f_l && self.f_m {
+            lambda_vec = vector_sub(&lambda_vec,
+                                    &vector_add(
+                                        &vector_tensor_mul(&vector_mul_on_scalar(&e(&lambda, self.dim_nv), &mu), &e(&pow(&mu, self.dim_nv), self.k)),
+                                        &vector_tensor_mul(&e(&mu, self.dim_nv), &e(&pow(&lambda, self.dim_nv), self.k)),
+                                    ),
+            );
+        }
+
+        let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
+
+        let mu_diag_inv = diag_inv(&mu, self.dim_nm);
+
+        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnL), &vector_mul_on_matrix(&mu_vec, &M_mnL)), &mu_diag_inv);
+        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnR), &vector_mul_on_matrix(&mu_vec, &M_mnR)), &mu_diag_inv);
+        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnO), &vector_mul_on_matrix(&mu_vec, &M_mnO)), &mu_diag_inv);
+
+        let c_lL = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llL), &vector_mul_on_matrix(&mu_vec, &M_mlL));
+        let c_lR = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llR), &vector_mul_on_matrix(&mu_vec, &M_mlR));
+        let c_lO = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llO), &vector_mul_on_matrix(&mu_vec, &M_mlO));
+
+        let l_comb = |i: usize| -> Scalar {
+            let mut coef = Scalar::ZERO;
+            if self.f_l {
+                coef = coef.add(pow(&lambda, self.dim_nv * i))
+            }
+
+            if self.f_m {
+                coef = coef.add(pow(&mu, self.dim_nv * i + 1))
+            }
+
+            coef
+        };
+
+        let mut v_ = ProjectivePoint::IDENTITY;
+        (0..self.k).for_each(|i| v_ = v_.add(v[i].mul(l_comb(i))));
+        v_ = v_.mul(Scalar::from(2u32));
+
+        t.append_message(b"cs", proof.c_s.to_bytes().as_slice());
+
+        let tau = get_challenge(b"tau", t);
+        let tau_inv = tau.invert().unwrap();
+        let tau2 = tau.mul(&tau);
+        let tau3 = tau2.mul(&tau);
+
+        let delta_inv = delta.invert().unwrap();
+
+        let mut pn_tau = vector_mul_on_scalar(&c_nO, &tau3.mul(&delta_inv));
+        pn_tau = vector_sub(&pn_tau, &vector_mul_on_scalar(&c_nL, &tau2));
+        pn_tau = vector_add(&pn_tau, &vector_mul_on_scalar(&c_nR, &tau));
+
+        let ps_tau = weight_vector_mul(&pn_tau, &pn_tau, &mu).
+            add(&vector_mul(&lambda_vec, &self.a_l).mul(&tau3).mul(&Scalar::from(2u32))).
+            sub(&vector_mul(&mu_vec, &self.a_m).mul(&tau3).mul(&Scalar::from(2u32)));
+
+
+        let pt = self.g.mul(ps_tau).add(vector_mul(&self.g_vec, &pn_tau));
+
+        let cr_tau = vec![
+            Scalar::ONE,
+            tau_inv.mul(beta),
+            tau.mul(beta),
+            tau2.mul(beta),
+            tau3.mul(beta),
+            tau.mul(tau3).mul(beta),
+            tau2.mul(tau3).mul(beta),
+            tau3.mul(tau3).mul(beta),
+            tau3.mul(tau3).mul(tau).mul(beta),
+        ];
+
+        let mut c_l0 = (0..self.dim_nv - 1).map(|_| Scalar::ZERO).collect::<Vec<Scalar>>();
+        if self.f_l {
+            c_l0 = vector_add(&c_l0, &(e(&lambda, self.dim_nv)[1..].to_vec()));
+        }
+        if self.f_m {
+            c_l0 = vector_sub(&c_l0, &vector_mul_on_scalar(&e(&mu, self.dim_nv)[1..].to_vec(), &mu));
+        }
+
+        let mut cl_tau = vector_mul_on_scalar(&c_lO, &tau3.mul(&delta_inv));
+        cl_tau = vector_sub(&cl_tau, &vector_mul_on_scalar(&c_lL, &tau2));
+        cl_tau = vector_add(&cl_tau, &vector_mul_on_scalar(&c_lR, &tau));
+        cl_tau = vector_mul_on_scalar(&cl_tau, &Scalar::from(2u32));
+        cl_tau = vector_sub(&cl_tau, &c_l0);
+
+        let c = [cr_tau.clone(), cl_tau.clone()].concat();
+
+        let commitment = pt.
+            add(&proof.c_s.mul(&tau_inv)).
+            sub(&proof.c_o.mul(&delta)).
+            add(&proof.c_l.mul(&tau)).
+            sub(&proof.c_r.mul(&tau2)).
+            add(&v_.mul(&tau3));
+
+        let wnla = WeightNormLinearArgument {
+            g: self.g.clone(),
+            g_vec: self.g_vec.clone(),
+            h_vec: self.h_vec.clone(),
+            c,
+            rho,
+            mu,
+        };
+
+        let wnla_proof = wnla::Proof{
+            r: proof.r,
+            x: proof.x,
+            l: proof.l,
+            n: proof.n,
+        };
+
+        return wnla.verify(&commitment, t, wnla_proof);
     }
 
     pub fn prove<T: RngCore + CryptoRng, P: Partition>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
@@ -158,16 +297,16 @@ impl ArithmeticCircuit {
             t.append_message(b"v", v_i.to_bytes().as_slice());
         }
 
-        let mut get_challenge = |t: &mut Transcript| -> Scalar{
+        let get_challenge = |label: &'static [u8], t: &mut Transcript| -> Scalar{
             let mut buf = [0u8; 32];
-            t.challenge_bytes(b"y", &mut buf);
+            t.challenge_bytes(label, &mut buf);
             Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
         };
 
-        let rho = get_challenge(t);
-        let lambda = get_challenge(t);
-        let beta = get_challenge(t);
-        let delta = get_challenge(t);
+        let rho = get_challenge(b"rho",t);
+        let lambda = get_challenge(b"lambda",t);
+        let beta = get_challenge(b"beta",t);
+        let delta = get_challenge(b"delta",t);
 
         let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
         let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
@@ -292,7 +431,7 @@ impl ArithmeticCircuit {
 
         let beta_inv = beta.invert().unwrap();
 
-        let mut rs = vec![
+        let rs = vec![
             f_[1].add(ro[1].mul(&delta).mul(&beta)),
             f_[0].mul(&beta_inv),
             ro[0].mul(&delta).add(&f_[2]).mul(&beta_inv).sub(&rl[1]),
@@ -310,7 +449,7 @@ impl ArithmeticCircuit {
 
         t.append_message(b"cs", cs.to_bytes().as_slice());
 
-        let tau = get_challenge(t);
+        let tau = get_challenge(b"tau", t);
         let tau_inv = tau.invert().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
@@ -335,8 +474,6 @@ impl ArithmeticCircuit {
         n_tau = vector_sub(&n_tau, &vector_mul_on_scalar(&nr, &tau2));
 
         let mut n = vector_add(&pn_tau, &n_tau);
-
-        //let pt = self.g.mul(ps_tau).add(vector_mul(&self.g_vec, &pn_tau));
 
         let cr_tau = vec![
             Scalar::ONE,

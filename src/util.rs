@@ -1,7 +1,6 @@
 use std::ops::{Add, Mul, Sub};
 use k256::elliptic_curve::Field;
 use k256::Scalar;
-use sha2::digest::generic_array::arr::Inc;
 
 pub fn reduce<T: Copy>(v: &Vec<T>) -> (Vec<T>, Vec<T>) {
     let res0 = v.iter().
@@ -66,7 +65,7 @@ pub fn vector_sub<'a, T: Copy + Sub<Output=T>>(a: &'a Vec<T>, b: &'a Vec<T>) -> 
 pub fn e(v: &Scalar, n: usize) -> Vec<Scalar> {
     let mut buf = Scalar::ONE;
 
-    (0..n).map(|i| {
+    (0..n).map(|_| {
         let val = buf;
         buf = buf.mul(v);
         val

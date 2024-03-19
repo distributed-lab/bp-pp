@@ -1,7 +1,6 @@
 use std::ops::{Add, Mul};
 use k256::{FieldBytes, ProjectivePoint, Scalar};
 use k256::elliptic_curve::group::GroupEncoding;
-use k256::elliptic_curve::group::prime::PrimeCurveAffine;
 use k256::elliptic_curve::PrimeField;
 use merlin::Transcript;
 use crate::util::*;
