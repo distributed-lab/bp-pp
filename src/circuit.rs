@@ -76,64 +76,26 @@ impl ArithmeticCircuit {
             t.append_message(b"v", v_i.to_bytes().as_slice());
         }
 
-        let get_challenge = |label: &'static [u8], t: &mut Transcript| -> Scalar{
-            let mut buf = [0u8; 32];
-            t.challenge_bytes(label, &mut buf);
-            Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
-        };
-
-        let rho = get_challenge(b"rho",t);
-        let lambda = get_challenge(b"lambda",t);
-        let beta = get_challenge(b"beta",t);
-        let delta = get_challenge(b"delta",t);
-
-        let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
-        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
+        let rho = ArithmeticCircuit::get_challenge(b"rho", t);
+        let lambda = ArithmeticCircuit::get_challenge(b"lambda", t);
+        let beta = ArithmeticCircuit::get_challenge(b"beta", t);
+        let delta = ArithmeticCircuit::get_challenge(b"delta", t);
 
         let mu = rho.mul(rho);
 
-        let mut lambda_vec = e(&lambda, self.dim_nl);
-        if self.f_l && self.f_m {
-            lambda_vec = vector_sub(&lambda_vec,
-                                    &vector_add(
-                                        &vector_tensor_mul(&vector_mul_on_scalar(&e(&lambda, self.dim_nv), &mu), &e(&pow(&mu, self.dim_nv), self.k)),
-                                        &vector_tensor_mul(&e(&mu, self.dim_nv), &e(&pow(&lambda, self.dim_nv), self.k)),
-                                    ),
-            );
-        }
+        let lambda_vec = self.collect_lambda(&lambda, &mu);
 
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-        let mu_diag_inv = diag_inv(&mu, self.dim_nm);
-
-        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnL), &vector_mul_on_matrix(&mu_vec, &M_mnL)), &mu_diag_inv);
-        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnR), &vector_mul_on_matrix(&mu_vec, &M_mnR)), &mu_diag_inv);
-        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnO), &vector_mul_on_matrix(&mu_vec, &M_mnO)), &mu_diag_inv);
-
-        let c_lL = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llL), &vector_mul_on_matrix(&mu_vec, &M_mlL));
-        let c_lR = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llR), &vector_mul_on_matrix(&mu_vec, &M_mlR));
-        let c_lO = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llO), &vector_mul_on_matrix(&mu_vec, &M_mlO));
-
-        let l_comb = |i: usize| -> Scalar {
-            let mut coef = Scalar::ZERO;
-            if self.f_l {
-                coef = coef.add(pow(&lambda, self.dim_nv * i))
-            }
-
-            if self.f_m {
-                coef = coef.add(pow(&mu, self.dim_nv * i + 1))
-            }
-
-            coef
-        };
+        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c::<P>(&lambda_vec, &mu_vec, &lambda, &mu);
 
         let mut v_ = ProjectivePoint::IDENTITY;
-        (0..self.k).for_each(|i| v_ = v_.add(v[i].mul(l_comb(i))));
+        (0..self.k).for_each(|i| v_ = v_.add(v[i].mul(self.linear_comb_coef(i, &lambda, &mu))));
         v_ = v_.mul(Scalar::from(2u32));
 
         t.append_message(b"cs", proof.c_s.to_bytes().as_slice());
 
-        let tau = get_challenge(b"tau", t);
+        let tau = ArithmeticCircuit::get_challenge(b"tau", t);
         let tau_inv = tau.invert().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
@@ -195,14 +157,12 @@ impl ArithmeticCircuit {
             mu,
         };
 
-        let wnla_proof = wnla::Proof{
+        return wnla.verify(&commitment, t, wnla::Proof {
             r: proof.r,
             x: proof.x,
             l: proof.l,
             n: proof.n,
-        };
-
-        return wnla.verify(&commitment, t, wnla_proof);
+        });
     }
 
     pub fn prove<T: RngCore + CryptoRng, P: Partition>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
@@ -297,71 +257,32 @@ impl ArithmeticCircuit {
             t.append_message(b"v", v_i.to_bytes().as_slice());
         }
 
-        let get_challenge = |label: &'static [u8], t: &mut Transcript| -> Scalar{
-            let mut buf = [0u8; 32];
-            t.challenge_bytes(label, &mut buf);
-            Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
-        };
-
-        let rho = get_challenge(b"rho",t);
-        let lambda = get_challenge(b"lambda",t);
-        let beta = get_challenge(b"beta",t);
-        let delta = get_challenge(b"delta",t);
-
-        let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
-        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
+        let rho = ArithmeticCircuit::get_challenge(b"rho", t);
+        let lambda = ArithmeticCircuit::get_challenge(b"lambda", t);
+        let beta = ArithmeticCircuit::get_challenge(b"beta", t);
+        let delta = ArithmeticCircuit::get_challenge(b"delta", t);
 
         let mu = rho.mul(rho);
 
-        let mut lambda_vec = e(&lambda, self.dim_nl);
-        if self.f_l && self.f_m {
-            lambda_vec = vector_sub(&lambda_vec,
-                                    &vector_add(
-                                        &vector_tensor_mul(&vector_mul_on_scalar(&e(&lambda, self.dim_nv), &mu), &e(&pow(&mu, self.dim_nv), self.k)),
-                                        &vector_tensor_mul(&e(&mu, self.dim_nv), &e(&pow(&lambda, self.dim_nv), self.k)),
-                                    ),
-            );
-        }
-
+        let lambda_vec = self.collect_lambda(&lambda, &mu);
 
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-        let mu_diag_inv = diag_inv(&mu, self.dim_nm);
-
-        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnL), &vector_mul_on_matrix(&mu_vec, &M_mnL)), &mu_diag_inv);
-        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnR), &vector_mul_on_matrix(&mu_vec, &M_mnR)), &mu_diag_inv);
-        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnO), &vector_mul_on_matrix(&mu_vec, &M_mnO)), &mu_diag_inv);
-
-        let c_lL = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llL), &vector_mul_on_matrix(&mu_vec, &M_mlL));
-        let c_lR = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llR), &vector_mul_on_matrix(&mu_vec, &M_mlR));
-        let c_lO = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llO), &vector_mul_on_matrix(&mu_vec, &M_mlO));
+        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c::<P>(&lambda_vec, &mu_vec, &lambda, &mu);
 
         let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect();
         let ns = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect();
 
-        let l_comb = |i: usize| -> Scalar {
-            let mut coef = Scalar::ZERO;
-            if self.f_l {
-                coef = coef.add(pow(&lambda, self.dim_nv * i))
-            }
-
-            if self.f_m {
-                coef = coef.add(pow(&mu, self.dim_nv * i + 1))
-            }
-
-            coef
-        };
-
         let mut v_0 = Scalar::ZERO;
-        (0..self.k).for_each(|i| v_0 = v_0.add(witness.v[i][0].mul(l_comb(i))));
+        (0..self.k).for_each(|i| v_0 = v_0.add(witness.v[i][0].mul(self.linear_comb_coef(i, &lambda, &mu))));
         v_0 = v_0.mul(Scalar::from(2u32));
 
         let mut rv = (0..9).map(|_| Scalar::ZERO).collect::<Vec<Scalar>>();
-        (0..self.k).for_each(|i| rv[0] = rv[0].add(witness.s_v[i].mul(l_comb(i))));
+        (0..self.k).for_each(|i| rv[0] = rv[0].add(witness.s_v[i].mul(self.linear_comb_coef(i, &lambda, &mu))));
         rv[0] = rv[0].mul(Scalar::from(2u32));
 
         let mut v_1 = (0..self.dim_nv - 1).map(|_| Scalar::ZERO).collect::<Vec<Scalar>>();
-        (0..self.k).for_each(|i| v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &l_comb(i))));
+        (0..self.k).for_each(|i| v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &self.linear_comb_coef(i, &lambda, &mu))));
         v_1.push(Scalar::ZERO); // to correspond dimensions
 
         let mut c_l0 = (0..self.dim_nv - 1).map(|_| Scalar::ZERO).collect::<Vec<Scalar>>();
@@ -449,7 +370,7 @@ impl ArithmeticCircuit {
 
         t.append_message(b"cs", cs.to_bytes().as_slice());
 
-        let tau = get_challenge(b"tau", t);
+        let tau = ArithmeticCircuit::get_challenge(b"tau", t);
         let tau_inv = tau.invert().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
@@ -519,6 +440,7 @@ impl ArithmeticCircuit {
         };
 
         let proof_wnla = wnla.prove(&commitment, t, l, n);
+
         return Proof {
             c_l: cl,
             c_r: cr,
@@ -530,6 +452,58 @@ impl ArithmeticCircuit {
             n: proof_wnla.n,
         };
     }
+
+    fn get_challenge(label: &'static [u8], t: &mut Transcript) -> Scalar {
+        let mut buf = [0u8; 32];
+        t.challenge_bytes(label, &mut buf);
+        Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
+    }
+
+    fn linear_comb_coef(&self, i: usize, lambda: &Scalar, mu: &Scalar) -> Scalar {
+        let mut coef = Scalar::ZERO;
+        if self.f_l {
+            coef = coef.add(pow(&lambda, self.dim_nv * i))
+        }
+
+        if self.f_m {
+            coef = coef.add(pow(&mu, self.dim_nv * i + 1))
+        }
+
+        coef
+    }
+
+    fn collect_c<P: Partition>(&self, lambda_vec: &Vec<Scalar>, mu_vec: &Vec<Scalar>, lambda: &Scalar, mu: &Scalar) -> (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>) {
+        let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
+        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
+
+        let mu_diag_inv = diag_inv(&mu, self.dim_nm);
+
+        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnL), &vector_mul_on_matrix(&mu_vec, &M_mnL)), &mu_diag_inv);
+        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnR), &vector_mul_on_matrix(&mu_vec, &M_mnR)), &mu_diag_inv);
+        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnO), &vector_mul_on_matrix(&mu_vec, &M_mnO)), &mu_diag_inv);
+
+        let c_lL = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llL), &vector_mul_on_matrix(&mu_vec, &M_mlL));
+        let c_lR = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llR), &vector_mul_on_matrix(&mu_vec, &M_mlR));
+        let c_lO = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llO), &vector_mul_on_matrix(&mu_vec, &M_mlO));
+
+        return (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO);
+    }
+
+    fn collect_lambda(&self, lambda: &Scalar, mu: &Scalar) -> Vec<Scalar> {
+        let mut lambda_vec = e(lambda, self.dim_nl);
+        if self.f_l && self.f_m {
+            lambda_vec = vector_sub(
+                &lambda_vec,
+                &vector_add(
+                    &vector_tensor_mul(&vector_mul_on_scalar(&e(lambda, self.dim_nv), mu), &e(&pow(mu, self.dim_nv), self.k)),
+                    &vector_tensor_mul(&e(mu, self.dim_nv), &e(&pow(lambda, self.dim_nv), self.k)),
+                ),
+            );
+        }
+
+        return lambda_vec;
+    }
+
     fn collect_m_rl(&self) -> (Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>) {
         let M_lnL = (0..self.dim_nl).map(|i| Vec::from(&self.W_l[i][..self.dim_nm])).collect::<Vec<Vec<Scalar>>>();
         let M_mnL = (0..self.dim_nm).map(|i| Vec::from(&self.W_m[i][..self.dim_nm])).collect::<Vec<Vec<Scalar>>>();
