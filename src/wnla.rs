@@ -58,10 +58,9 @@ impl WeightNormLinearArgument {
         let g_ = vector_add(&vector_mul_on_scalar(&g0, &self.rho), &vector_mul_on_scalar(&g1, &y));
         let c_ = vector_add(&c0, &vector_mul_on_scalar(&c1, &y));
 
-
         let com_ = commitment.
-            add(&proof.x[0].mul(y)).
-            add(&proof.r[0].mul(y.mul(y).sub(&Scalar::ONE)));
+            add(&proof.x.last().unwrap().mul(&y)).
+            add(&proof.r.last().unwrap().mul(&y.mul(&y).sub(&Scalar::ONE)));
 
         let wnla = WeightNormLinearArgument {
             g: self.g,
@@ -74,7 +73,7 @@ impl WeightNormLinearArgument {
 
         let proof_ = Proof {
             r: proof.r[..proof.r.len() - 1].to_vec(),
-            x: proof.r[..proof.x.len() - 1].to_vec(),
+            x: proof.x[..proof.x.len() - 1].to_vec(),
             l: proof.l,
             n: proof.n,
         };
