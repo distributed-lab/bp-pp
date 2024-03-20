@@ -58,7 +58,6 @@ mod tests {
         let g = k256::ProjectivePoint::random(&mut rand);
         let g_vec = (0..1).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
         let h_vec = (0..16).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
-        let c = (0..16).map(|_| k256::Scalar::generate_biased(&mut rand)).collect::<Vec<Scalar>>();
 
         struct Part {}
 

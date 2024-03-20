@@ -52,11 +52,9 @@ pub fn vector_mul<T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>>(a: 
     return result;
 }
 
-
 pub fn vector_mul_on_scalar<'a, T: Copy + Mul<&'a Scalar, Output=T>>(a: &Vec<T>, s: &'a Scalar) -> Vec<T> {
     a.iter().map(|x| x.mul(s)).collect::<Vec<T>>()
 }
-
 
 pub fn vector_add<T: Copy + Default + Add<Output=T>>( a: &Vec<T>,  b: &Vec<T>) -> Vec<T> {
     let a_ext = &vector_extend(a, max(a.len(), b.len()));
@@ -87,7 +85,7 @@ pub fn pow(s: &Scalar, n: usize) -> Scalar {
 pub fn vector_hadamard_mul<T: Copy + Default + Mul<Scalar, Output=T>>( a: &Vec<T>,  b: &Vec<Scalar>) -> Vec<T> {
     let a_ext = &vector_extend(a, max(a.len(), b.len()));
     let b_ext = &vector_extend(b, max(a.len(), b.len()));
-    a.iter().zip(b).map(|(a_val, b_val)| a_val.mul(*b_val)).collect::<Vec<T>>()
+    a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.mul(*b_val)).collect::<Vec<T>>()
 }
 
 pub fn vector_tensor_mul<'a, T: Copy + Mul<&'a Scalar, Output=T>>(a: &'a Vec<T>, b: &'a Vec<Scalar>) -> Vec<T> {
