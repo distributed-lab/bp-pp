@@ -42,7 +42,7 @@ pub fn main() {
     };
 
     // transcript will be used for challenge generation - to move from interactive to non-interactive protocol.
-    // transcript should be the same but new instance for prover and verifier. 
+    // transcript should be the new instance but with same label for prover and verifier. 
     let mut pt = Transcript::new(b"u64 range proof");
     let proof = public.prove(x, &s, &mut pt, &mut rand);
 
