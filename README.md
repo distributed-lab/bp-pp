@@ -8,6 +8,15 @@ Present Rust library contains the implementation of Bulletproofs++ weight norm l
 circuit protocol and reciprocal range proof protocol. Also, contains the uint64 range proof protocol as a primary
 use-case for reciprocal range proofs.
 
+Implemented protocol has 2G advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
+advantage will increase for more values per proof.
+
+| Protocol | G | F |
+|---------- |---- |--- |
+| BP | 16 | 5 |
+| BP+ | 15 | 3 |
+| Our BP++ | 13 | 3 |
+
 ## Example of usage
 
 ```rust
@@ -31,7 +40,7 @@ pub fn main() {
 
     // transcript will be used for challenge generation - to move from interactive to non-interactive protocol.
     // transcript should be the same but new instance for prover and verifier. 
-    let mut pt = Transcript::new(b"u64 range proof"); 
+    let mut pt = Transcript::new(b"u64 range proof");
     let proof = public.prove(x, &s, &mut pt, &mut rand);
 
     // value commitment: `commitment = x*g + s*h_vec[0]`
