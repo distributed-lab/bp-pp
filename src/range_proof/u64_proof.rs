@@ -6,27 +6,23 @@ use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProof, Witness};
 
-pub const G_VEC_CIRCUIT_SZ: usize = 16;
+const G_VEC_CIRCUIT_SZ: usize = 16;
 pub const G_VEC_FULL_SZ: usize = 16;
-pub const H_VEC_CIRCUIT_SZ: usize = 26;
+const H_VEC_CIRCUIT_SZ: usize = 26;
 pub const H_VEC_FULL_SZ: usize = 32;
 
 
 /// Represents public information for reciprocal range proof protocol for [0..2^64) range.
 #[derive(Clone, Debug)]
 pub struct U64RangeProof {
-    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
+    /// Will be used for the value commitment as: `commitment = x*g + s*h_vec[0]`
     pub g: ProjectivePoint,
-
     /// Dimension: `16`
     pub g_vec: Vec<ProjectivePoint>,
-    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
-    /// Dimension: `26`
-    pub h_vec: Vec<ProjectivePoint>,
 
-    /// Additional points to be used in WNLA.
-    /// Dimension: `6`
-    pub h_vec_: Vec<ProjectivePoint>,
+    /// Will be used for the value commitment as: `commitment = x*g + s*h_vec[0]`
+    /// Dimension: `26+6=32`
+    pub h_vec: Vec<ProjectivePoint>,
 }
 
 impl U64RangeProof {
@@ -47,9 +43,9 @@ impl U64RangeProof {
             dim_np: Self::DIM_NP,
             g: self.g,
             g_vec: self.g_vec.clone(),
-            h_vec: self.h_vec.clone(),
+            h_vec: self.h_vec[..H_VEC_CIRCUIT_SZ].to_vec(),
             g_vec_: vec![],
-            h_vec_: self.h_vec_.clone(),
+            h_vec_: self.h_vec[H_VEC_CIRCUIT_SZ..].to_vec(),
         };
 
         reciprocal.verify(v, proof, t)
@@ -68,9 +64,9 @@ impl U64RangeProof {
             dim_np: Self::DIM_NP,
             g: self.g,
             g_vec: self.g_vec.clone(),
-            h_vec: self.h_vec.clone(),
+            h_vec: self.h_vec[..H_VEC_CIRCUIT_SZ].to_vec(),
             g_vec_: vec![],
-            h_vec_: self.h_vec_.clone(),
+            h_vec_: self.h_vec[H_VEC_CIRCUIT_SZ..].to_vec(),
         };
 
         let witness = Witness {

@@ -38,8 +38,7 @@ pub fn main() {
     let public = range_proof::u64_proof::U64RangeProof {
         g,
         g_vec,
-        h_vec: h_vec[..H_VEC_CIRCUIT_SZ].to_vec(),
-        h_vec_: h_vec[H_VEC_CIRCUIT_SZ..].to_vec(),
+        h_vec,
     };
 
     // transcript will be used for challenge generation - to move from interactive to non-interactive protocol.
