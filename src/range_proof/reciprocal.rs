@@ -8,49 +8,63 @@ use crate::util::*;
 use crate::{circuit, transcript};
 use crate::circuit::{ArithmeticCircuit, PartitionType};
 
+/// Represents reciprocal range-proof protocol witness.
+#[derive(Clone, Debug)]
 pub struct Witness {
+    /// Private value in range [0..dim_np^dim_nd).
     pub x: Scalar,
-    // value
+    /// Blinding value
     pub s: Scalar,
-    // witness
+    /// Witness vector: value multiplicities: i-th element corresponds to the 'i-digit' multiplicity
     pub m: Vec<Scalar>,
+    /// Witness vector: value digits.
     pub digits: Vec<Scalar>,
 }
 
+/// Represents reciprocal range-proof: zk-proof that committed value lies in [0..dim_np^dim_nd) range.
+#[derive(Clone, Debug)]
 pub struct Proof {
     pub circuit_proof: circuit::Proof,
     pub r: ProjectivePoint,
 }
 
+/// Represents public reciprocal range proof information. Using this information and challenge both
+/// prover and verifier can derive the arithmetic circuit.
+#[derive(Clone, Debug)]
 pub struct ReciprocalRangeProof {
-    // dim_nd - count of private proles (size of committed value). dim_nm = dim_nd. dim_nv = 1 + dim_nd
+    /// Count of private proles (size of committed value). Equals to: `dim_nm`. Also, `dim_nv = 1 + dim_nd`.
     pub dim_nd: usize,
-    //  dim_np - count of public poles (number system base). dim_no = dim_np
+    /// Count of public poles (number system base). Equals to: `dim_no`.
     pub dim_np: usize,
 
-    // g and h_vec[0] will be used for the value commitment: VCom = x*g + s*h_vec[0]
+    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
     pub g: ProjectivePoint,
 
-    // dim_nm
+    /// Dimension: `dim_nm`
     pub g_vec: Vec<ProjectivePoint>,
-    // dim_nv+9
+    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
+    /// Dimension: `dim_nv+9`
     pub h_vec: Vec<ProjectivePoint>,
 
-    // Vectors of points that will be used in WNLA protocol
-    // 2^n - dim_nm
+    /// Additional points to be used in WNLA.
+    /// Dimension: `2^n - dim_nm`
     pub g_vec_: Vec<ProjectivePoint>,
-    // 2^n - (dim_nv+9)
+    /// Dimension: `2^n - (dim_nv+9)`
     pub h_vec_: Vec<ProjectivePoint>,
 }
 
 impl ReciprocalRangeProof {
+    /// Creates commitment for the private value and blinding: `commitment = x*g + s*h_vec[0]`
     pub fn commit_value(&self, x: &Scalar, s: &Scalar) -> ProjectivePoint {
         self.g.mul(x).add(&self.h_vec[0].mul(s))
     }
+
+    /// Creates commitment for the reciprocals and blinding: `commitment = s*h_vec[0] + <r, h_vec[9:]>`
     pub fn commit_poles(&self, r: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
         self.h_vec[0].mul(s).add(&vector_mul(&self.h_vec[9..].to_vec(), &r))
     }
 
+    /// Verifies zk-proof that committed value lies in [0..dim_np^dim_nd) range.
     pub fn verify(&self, commitment: &ProjectivePoint, proof: Proof, t: &mut Transcript) -> bool {
         transcript::app_point(b"reciprocal_commitment", commitment, t);
         let e = transcript::get_challenge(b"reciprocal_challenge", t);
@@ -70,6 +84,7 @@ impl ReciprocalRangeProof {
         return circuit.verify(&vec![circuit_commitment], t, proof.circuit_proof);
     }
 
+    /// Creates zk-proof that committed value lies in [0..dim_np^dim_nd) range.
     pub fn prove<T: RngCore + CryptoRng>(&self, commitment: &ProjectivePoint, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
         transcript::app_point(b"reciprocal_commitment", commitment, t);
         let e = transcript::get_challenge(b"reciprocal_challenge", t);

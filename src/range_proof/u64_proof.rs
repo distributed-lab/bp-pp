@@ -6,30 +6,35 @@ use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProof, Witness};
 
+/// Represents public information for reciprocal range proof protocol for [0..2^64) range.
+#[derive(Clone, Debug)]
 pub struct U64RangeProof {
-    // Base points
-
-    // g and h_vec[0] will be used for the value commitment: commitment = x*g + s*h_vec[0]
+    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
     pub g: ProjectivePoint,
 
-    // len = 16
+    /// Dimension: `16`
     pub g_vec: Vec<ProjectivePoint>,
-    // len = 26
+    /// Will be used for the value commitment: `commitment = x*g + s*h_vec[0]`
+    /// Dimension: `26`
     pub h_vec: Vec<ProjectivePoint>,
 
-    // Additional points
-
-    // len = 6
+    /// Additional points to be used in WNLA.
+    /// Dimension: `6`
     pub h_vec_: Vec<ProjectivePoint>,
 }
 
 impl U64RangeProof {
+    /// Count of digits of u64 in hex representation.
     const DIM_ND: usize = 16;
+    /// Base (hex)
     const DIM_NP: usize = 16;
+
+    /// Creates commitment for the private value and blinding: `commitment = x*g + s*h_vec[0]`
     pub fn commit_value(&self, x: u64, s: &Scalar) -> ProjectivePoint {
         self.g.mul(&Scalar::from(x)).add(&self.h_vec[0].mul(s))
     }
 
+    /// Verifies that committed value in `v` lies in range [0..2^64).
     pub fn verify(&self, v: &ProjectivePoint, proof: Proof, t: &mut Transcript) -> bool {
         let reciprocal = ReciprocalRangeProof {
             dim_nd: Self::DIM_ND,
@@ -44,6 +49,7 @@ impl U64RangeProof {
         reciprocal.verify(v, proof, t)
     }
 
+    /// Creates proof that values `x` with blinding `s` lies in [0..2^64).
     pub fn prove<T: RngCore + CryptoRng>(&self, x: u64, s: &Scalar, t: &mut Transcript, rng: &mut T) -> Proof {
         let digits = Self::u64_to_hex(x);
         let poles = Self::u64_to_hex_mapped(x);

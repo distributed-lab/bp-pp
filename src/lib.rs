@@ -1,5 +1,3 @@
-extern crate core;
-
 pub mod wnla;
 pub mod circuit;
 pub mod transcript;

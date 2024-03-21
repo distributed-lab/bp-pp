@@ -8,7 +8,7 @@ use crate::util::*;
 use crate::{transcript, wnla};
 use crate::wnla::WeightNormLinearArgument;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 pub enum PartitionType {
     LO,
     LL,
@@ -16,11 +16,8 @@ pub enum PartitionType {
     NO,
 }
 
-pub trait Partition {
-    fn map(typ: PartitionType, index: usize) -> Option<usize>;
-}
-
-#[derive(Debug)]
+/// Represents arithmetic circuit zero-knowledge proof.
+#[derive(Clone, Debug)]
 pub struct Proof {
     pub c_l: ProjectivePoint,
     pub c_r: ProjectivePoint,
@@ -32,62 +29,67 @@ pub struct Proof {
     pub n: Vec<Scalar>,
 }
 
+/// Represents arithmetic circuit witness.
+#[derive(Clone, Debug)]
 pub struct Witness {
-    // k*dim_nv
+    /// Dimension: `k*dim_nv`
     pub v: Vec<Vec<Scalar>>,
-    // k
+    /// Dimension: `k`
     pub s_v: Vec<Scalar>,
-    // dim_nm
+    /// Dimension: `dim_nm`
     pub w_l: Vec<Scalar>,
-    // dim_nm
+    /// Dimension: `dim_nm`
     pub w_r: Vec<Scalar>,
-    // dim_no
+    /// Dimension: `dim_no`
     pub w_o: Vec<Scalar>,
 }
 
+/// Represents arithmetic circuit.
 pub struct ArithmeticCircuit<P: Fn(PartitionType, usize) -> Option<usize>> {
     pub dim_nm: usize,
     pub dim_no: usize,
     pub k: usize,
 
-    // dim_nl = dim_nv * k
+    /// Equals to: `dim_nv * k`
     pub dim_nl: usize,
-    // Count of witness vectors v.
+    /// Count of witness vectors v.
     pub dim_nv: usize,
-    // dim_nw = dim_nm + dim_nm + n_o
+    ///  Equals to: `dim_nm + dim_nm + n_o`
     pub dim_nw: usize,
 
     pub g: ProjectivePoint,
 
-    // dim_nm
+    /// Dimension: `dim_nm`
     pub g_vec: Vec<ProjectivePoint>,
-    // dim_nv+9
+    /// Dimension: `dim_nv+9`
     pub h_vec: Vec<ProjectivePoint>,
 
-    // dim_nm * dim_nw
+    /// Dimension: `dim_nm * dim_nw`
     pub W_m: Vec<Vec<Scalar>>,
-    // dim_nl * dim_nw
+    /// Dimension: `dim_nl * dim_nw`
     pub W_l: Vec<Vec<Scalar>>,
 
-    // dim_nm
+    /// Dimension: `dim_nm`
     pub a_m: Vec<Scalar>,
-    // dim_nl
+    /// Dimension: `dim_nl`
     pub a_l: Vec<Scalar>,
 
     pub f_l: bool,
     pub f_m: bool,
 
-    // Vectors of points that will be used in WNLA protocol
-    // 2^n - dim_nm
+    /// Vector of points that will be used in WNLA protocol.
+    /// Dimension: `2^n - dim_nm`
     pub g_vec_: Vec<ProjectivePoint>,
-    // 2^n - (dim_nv+9)
+    /// Vector of points that will be used in WNLA protocol.
+    /// Dimension: `2^n - (dim_nv+9)`
     pub h_vec_: Vec<ProjectivePoint>,
 
-    // partition function
+    /// Partition function to map `w_o` and corresponding parts of `W_m` and `W_l`
     pub partition: P,
 }
 
 impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
+    /// Creates commitment to the arithmetic circuit witness.
     pub fn commit(&self, v: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
         self.
             g.mul(&v[0]).
@@ -95,6 +97,7 @@ impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
             add(&vector_mul(&self.h_vec[9..].to_vec(), &v[1..].to_vec()))
     }
 
+    /// Verifies arithmetic circuit proof with respect to the `v` commitments vector.
     pub fn verify(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
         transcript::app_point(b"commitment_cl", &proof.c_l, t);
         transcript::app_point(b"commitment_cr", &proof.c_r, t);
@@ -188,6 +191,8 @@ impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
         });
     }
 
+    /// Creates arithmetic circuit proof for the corresponding witness. Also, `v` commitments vector
+    /// should correspond input witness in `witness` argument.
     pub fn prove<T: RngCore + CryptoRng>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
         let ro = vec![
             Scalar::generate_biased(rng),

@@ -5,6 +5,8 @@ use k256::elliptic_curve::PrimeField;
 use merlin::Transcript;
 use crate::util::*;
 
+/// Represents public information to be used in weight norm linear argument protocol.
+#[derive(Clone, Debug)]
 pub struct WeightNormLinearArgument {
     pub g: ProjectivePoint,
     pub g_vec: Vec<ProjectivePoint>,
@@ -14,7 +16,10 @@ pub struct WeightNormLinearArgument {
     pub mu: Scalar,
 }
 
-#[derive(Debug)]
+/// Represents weight norm linear argument proof - zk-proof of knowledge of vectors \\(l, n\\) that
+/// satisfies commitment \\(C = v*g + <h_vec, l> + <g_vec, n>\\), where \\(v = |n|_{mu}^2 + <c, l>\\)
+/// with respect to public \\(g, g_vec, h_vec, c\\)
+#[derive(Clone, Debug)]
 pub struct Proof {
     pub r: Vec<ProjectivePoint>,
     pub x: Vec<ProjectivePoint>,
@@ -23,6 +28,8 @@ pub struct Proof {
 }
 
 impl WeightNormLinearArgument {
+    /// Creates weight norm linear argument commitment to vectors \\(l, n\\):
+    /// \\(C = v*g + <h_vec, l> + <g_vec, n>\\), where \\(v = |n|_{mu}^2 + <c, l>\\)
     pub fn commit(&self, l: &Vec<Scalar>, n: &Vec<Scalar>) -> ProjectivePoint {
         let v = vector_mul(&self.c, l).add(weight_vector_mul(n, n, &self.mu));
         self.
@@ -31,6 +38,7 @@ impl WeightNormLinearArgument {
             add(vector_mul(&self.g_vec, n))
     }
 
+    /// Verifies weight norm linear argument proof wor the provided `commitment`.
     pub fn verify(&self, commitment: &ProjectivePoint, t: &mut Transcript, proof: Proof) -> bool {
         if proof.x.len() != proof.r.len() {
             return false;
@@ -81,6 +89,8 @@ impl WeightNormLinearArgument {
         return wnla.verify(&com_, t, proof_);
     }
 
+    /// Creates weight norm linear argument proof. `commitment` argument should be a weight norm
+    /// linear argument with respect to `l` and `n` private vectors.
     pub fn prove(&self, commitment: &ProjectivePoint, t: &mut Transcript, l: Vec<Scalar>, n: Vec<Scalar>) -> Proof {
         if l.len() + n.len() < 6 {
             return Proof {
