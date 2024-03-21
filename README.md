@@ -8,7 +8,7 @@ Present Rust library contains the implementation of Bulletproofs++ weight norm l
 circuit protocol and reciprocal range proof protocol. Also, contains the uint64 range proof protocol as a primary
 use-case for reciprocal range proofs.
 
-Implemented protocol has 2G advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
+Implemented protocol has 2G points advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
 advantage will increase for more values per proof.
 
 | Protocol | G | F |
