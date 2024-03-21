@@ -82,10 +82,6 @@ impl WeightNormLinearArgument {
     }
 
     pub fn prove(&self, commitment: &ProjectivePoint, t: &mut Transcript, l: Vec<Scalar>, n: Vec<Scalar>) -> Proof {
-
-        // TODO remove
-        println!("WNLA secret: {:?}", vector_mul(&self.c, &l).add(weight_vector_mul(&n, &n, &self.mu)));
-
         if l.len() + n.len() < 6 {
             return Proof {
                 r: vec![],

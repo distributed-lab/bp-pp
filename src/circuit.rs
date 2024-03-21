@@ -1,14 +1,14 @@
+#![allow(non_snake_case)]
+
 use std::ops::{Add, Mul, Sub};
-use k256::{FieldBytes, ProjectivePoint, Scalar};
-use k256::elliptic_curve::group::GroupEncoding;
-use k256::elliptic_curve::PrimeField;
+use k256::{ProjectivePoint, Scalar};
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use crate::util::*;
-use crate::wnla;
+use crate::{transcript, wnla};
 use crate::wnla::WeightNormLinearArgument;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PartitionType {
     LO,
     LL,
@@ -45,7 +45,7 @@ pub struct Witness {
     pub w_o: Vec<Scalar>,
 }
 
-pub struct ArithmeticCircuit {
+pub struct ArithmeticCircuit<P: Fn(PartitionType, usize) -> Option<usize>> {
     pub dim_nm: usize,
     pub dim_no: usize,
     pub k: usize,
@@ -61,7 +61,7 @@ pub struct ArithmeticCircuit {
 
     // dim_nm
     pub g_vec: Vec<ProjectivePoint>,
-    // n_v+9
+    // dim_nv+9
     pub h_vec: Vec<ProjectivePoint>,
 
     // dim_nm * dim_nw
@@ -82,47 +82,49 @@ pub struct ArithmeticCircuit {
     pub g_vec_: Vec<ProjectivePoint>,
     // 2^n - (dim_nv+9)
     pub h_vec_: Vec<ProjectivePoint>,
+
+    // partition function
+    pub partition: P,
 }
 
-impl ArithmeticCircuit {
+impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
     pub fn commit(&self, v: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
         self.
-            g.mul(v[0]).
-            add(self.h_vec[0].mul(s)).
-            add(vector_mul(&self.h_vec[9..].to_vec(), &v[1..].to_vec()))
+            g.mul(&v[0]).
+            add(&self.h_vec[0].mul(s)).
+            add(&vector_mul(&self.h_vec[9..].to_vec(), &v[1..].to_vec()))
     }
 
-    pub fn verify<T: RngCore + CryptoRng, P: Partition>(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
-        t.append_message(b"cl", proof.c_l.to_bytes().as_slice());
-        t.append_message(b"cr", proof.c_r.to_bytes().as_slice());
-        t.append_message(b"co", proof.c_o.to_bytes().as_slice());
-        v.iter().for_each(|v_val| t.append_message(b"v", v_val.to_bytes().as_slice()));
+    pub fn verify(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
+        transcript::app_point(b"commitment_cl", &proof.c_l, t);
+        transcript::app_point(b"commitment_cr", &proof.c_r, t);
+        transcript::app_point(b"commitment_co", &proof.c_o, t);
 
-        let rho = ArithmeticCircuit::get_challenge(b"rho", t);
-        let lambda = ArithmeticCircuit::get_challenge(b"lambda", t);
-        let beta = ArithmeticCircuit::get_challenge(b"beta", t);
-        let delta = ArithmeticCircuit::get_challenge(b"delta", t);
+        v.iter().for_each(|v_val| transcript::app_point(b"commitment_v", v_val, t));
+
+        let rho = transcript::get_challenge(b"circuit_rho", t);
+        let lambda = transcript::get_challenge(b"circuit_lambda", t);
+        let beta = transcript::get_challenge(b"circuit_beta", t);
+        let delta = transcript::get_challenge(b"circuit_delta", t);
 
         let mu = rho.mul(rho);
 
         let lambda_vec = self.collect_lambda(&lambda, &mu);
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c::<P>(&lambda_vec, &mu_vec, &mu);
+        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
         let mut v_ = ProjectivePoint::IDENTITY;
         (0..self.k).
             for_each(|i| v_ = v_.add(v[i].mul(self.linear_comb_coef(i, &lambda, &mu))));
         v_ = v_.mul(Scalar::from(2u32));
 
-        t.append_message(b"cs", proof.c_s.to_bytes().as_slice());
+        transcript::app_point(b"commitment_cs", &proof.c_s, t);
 
-        let tau = ArithmeticCircuit::get_challenge(b"tau", t);
+        let tau = transcript::get_challenge(b"circuit_tau", t);
         let tau_inv = tau.invert().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
-
-        println!("tau = {:?}", tau);
 
         let delta_inv = delta.invert().unwrap();
 
@@ -158,16 +160,12 @@ impl ArithmeticCircuit {
 
         let mut c = Vec::from([&cr_tau[..], &cl_tau[..]].concat());
 
-        println!("c = {:?}", c);
-
         let commitment = pt.
             add(&proof.c_s.mul(&tau_inv)).
             sub(&proof.c_o.mul(&delta)).
             add(&proof.c_l.mul(&tau)).
             sub(&proof.c_r.mul(&tau2)).
             add(&v_.mul(&tau3));
-
-        println!("com = {:?}", commitment.to_affine());
 
         while c.len() < self.h_vec.len() + self.h_vec_.len() {
             c.push(Scalar::ZERO);
@@ -182,9 +180,6 @@ impl ArithmeticCircuit {
             mu,
         };
 
-
-        println!("mu = {:?}", mu);
-
         return wnla.verify(&commitment, t, wnla::Proof {
             r: proof.r,
             x: proof.x,
@@ -193,7 +188,7 @@ impl ArithmeticCircuit {
         });
     }
 
-    pub fn prove<T: RngCore + CryptoRng, P: Partition>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
+    pub fn prove<T: RngCore + CryptoRng>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
         let ro = vec![
             Scalar::generate_biased(rng),
             Scalar::generate_biased(rng),
@@ -234,7 +229,7 @@ impl ArithmeticCircuit {
         let nr = witness.w_r;
 
         let no = (0..self.dim_nm).map(|j|
-            if let Some(i) = P::map(PartitionType::NO, j) {
+            if let Some(i) = (self.partition)(PartitionType::NO, j) {
                 Scalar::from(witness.w_o[i])
             } else {
                 Scalar::ZERO
@@ -242,7 +237,7 @@ impl ArithmeticCircuit {
         ).collect::<Vec<Scalar>>();
 
         let lo = (0..self.dim_nv).map(|j|
-            if let Some(i) = P::map(PartitionType::LO, j) {
+            if let Some(i) = (self.partition)(PartitionType::LO, j) {
                 Scalar::from(witness.w_o[i])
             } else {
                 Scalar::ZERO
@@ -250,7 +245,7 @@ impl ArithmeticCircuit {
         ).collect::<Vec<Scalar>>();
 
         let ll = (0..self.dim_nv).map(|j|
-            if let Some(i) = P::map(PartitionType::LL, j) {
+            if let Some(i) = (self.partition)(PartitionType::LL, j) {
                 Scalar::from(witness.w_o[i])
             } else {
                 Scalar::ZERO
@@ -258,7 +253,7 @@ impl ArithmeticCircuit {
         ).collect::<Vec<Scalar>>();
 
         let lr = (0..self.dim_nv).map(|j|
-            if let Some(i) = P::map(PartitionType::LR, j) {
+            if let Some(i) = (self.partition)(PartitionType::LR, j) {
                 Scalar::from(witness.w_o[i])
             } else {
                 Scalar::ZERO
@@ -277,39 +272,22 @@ impl ArithmeticCircuit {
             vector_mul(&self.h_vec, &Vec::from([&rr[..], &lr[..]].concat())).
                 add(vector_mul(&self.g_vec, &nr));
 
-        t.append_message(b"cl", cl.to_bytes().as_slice());
-        t.append_message(b"cr", cr.to_bytes().as_slice());
-        t.append_message(b"co", co.to_bytes().as_slice());
-        v.iter().for_each(|v_val| t.append_message(b"v", v_val.to_bytes().as_slice()));
+        transcript::app_point(b"commitment_cl", &cl, t);
+        transcript::app_point(b"commitment_cr", &cr, t);
+        transcript::app_point(b"commitment_co", &co, t);
+        v.iter().for_each(|v_val| transcript::app_point(b"commitment_v", v_val, t));
 
-        let rho = ArithmeticCircuit::get_challenge(b"rho", t);
-        let lambda = ArithmeticCircuit::get_challenge(b"lambda", t);
-        let beta = ArithmeticCircuit::get_challenge(b"beta", t);
-        let delta = ArithmeticCircuit::get_challenge(b"delta", t);
+        let rho = transcript::get_challenge(b"circuit_rho", t);
+        let lambda = transcript::get_challenge(b"circuit_lambda", t);
+        let beta = transcript::get_challenge(b"circuit_beta", t);
+        let delta = transcript::get_challenge(b"circuit_delta", t);
 
         let mu = rho.mul(rho);
 
         let lambda_vec = self.collect_lambda(&lambda, &mu);
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-
-        // Check M matrix calculated ok
-
-        // let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
-        // let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
-
-        // let mut W_lw = vector_add(&matrix_mul_on_vector(&lo, &M_llO), &matrix_mul_on_vector(&no, &M_lnO));
-        // W_lw = vector_add(&W_lw, &vector_add(&matrix_mul_on_vector(&ll, &M_llL), &matrix_mul_on_vector(&nl, &M_lnL)));
-        // W_lw = vector_add(&W_lw, &vector_add(&matrix_mul_on_vector(&lr, &M_llR), &matrix_mul_on_vector(&nr, &M_lnR)));
-        //println!("Wl*w = {:?}", W_lw);
-
-        // let mut W_mw = vector_add(&matrix_mul_on_vector(&lo, &M_mlO), &matrix_mul_on_vector(&no, &M_mnO));
-        // W_mw = vector_add(&W_mw, &vector_add(&matrix_mul_on_vector(&ll, &M_mlL), &matrix_mul_on_vector(&nl, &M_mnL)));
-        // W_mw = vector_add(&W_mw, &vector_add(&matrix_mul_on_vector(&lr, &M_mlR), &matrix_mul_on_vector(&nr, &M_mnR)));
-        // println!("Wm*w = {:?}", W_mw);
-
-
-        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c::<P>(&lambda_vec, &mu_vec, &mu);
+        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
         let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect();
         let ns = (0..self.dim_nm).map(|_| Scalar::generate_biased(rng)).collect();
@@ -387,20 +365,6 @@ impl ArithmeticCircuit {
         // 6
         f_[7] = minus(&vector_mul(&c_lO, &v_1).mul(&delta_inv).mul(&Scalar::from(2u32)));
 
-
-        // TODO remove
-        let f3 = vector_mul(&lambda_vec, &self.a_l).sub(&vector_mul(&mu_vec, &self.a_m)).mul(&Scalar::from(2u32)).
-            sub(&weight_vector_mul(&c_nL, &c_nR, &mu).mul(&Scalar::from(2u32))).
-            add(&v_0).
-            add(&vector_mul(&c_lO, &lo).mul(&Scalar::from(2u32))).
-            add(&vector_mul(&c_lL, &ll).mul(&Scalar::from(2u32))).
-            add(&vector_mul(&c_lR, &lr).mul(&Scalar::from(2u32))).
-            add(&vector_mul(&c_l0, &v_1)).
-            add(&weight_vector_mul(&no, &c_nO, &mu).mul(&Scalar::from(2u32))).
-            add(&weight_vector_mul(&vector_add(&nl, &c_nR), &vector_add(&nr, &c_nL), &mu).mul(&Scalar::from(2u32)));
-
-        println!("f t^3 coef = {:?}", f3);
-
         let beta_inv = beta.invert().unwrap();
 
         let rs = vec![
@@ -418,14 +382,12 @@ impl ArithmeticCircuit {
         let cs = vector_mul(&self.h_vec, &Vec::from([&rs[..], &ls[..]].concat())).
             add(vector_mul(&self.g_vec, &ns));
 
-        t.append_message(b"cs", cs.to_bytes().as_slice());
+        transcript::app_point(b"commitment_cs", &cs, t);
 
-        let tau = ArithmeticCircuit::get_challenge(b"tau", t);
+        let tau = transcript::get_challenge(b"circuit_tau", t);
         let tau_inv = tau.invert().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
-
-        println!("tau = {:?}", tau);
 
         let mut l = vector_mul_on_scalar(&Vec::from([&rs[..], &ls[..]].concat()), &tau_inv);
         l = vector_sub(&l, &vector_mul_on_scalar(&Vec::from([&ro[..], &lo[..]].concat()), &delta));
@@ -467,21 +429,12 @@ impl ArithmeticCircuit {
         cl_tau = vector_sub(&cl_tau, &c_l0);
 
         let mut c = Vec::from([&cr_tau[..], &cl_tau[..]].concat());
-        println!("c = {:?}", c);
 
         let v = ps_tau.add(&tau3.mul(&v_0));
 
         let commitment = self.g.mul(v).
             add(&vector_mul(&self.h_vec, &l)).
             add(&vector_mul(&self.g_vec, &n));
-
-        //c = [Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000001)), Scalar(Uint(0xC047368FAF68B8D7AEDC273588B38314971615A7DFAD631B90D091DCB35AC4A0)), Scalar(Uint(0x2A002C66B95660DA7CB97C452388ADA02D087F8CDBE9A5FC327FA5D1C0BE2885)), Scalar(Uint(0x1AFDDF56010588FADFBC9103FAF2F9CBE826A4F8E267F8A82CCA0840D022E147)), Scalar(Uint(0x78B0B00A678065E8A29FBB0935E9C80343F7AD4514DA341CAE59931009093E03)), Scalar(Uint(0xBA4DE638473052E6DFDC510347DFBF7D36A7B15D309B692900839DE59CD33DFA)), Scalar(Uint(0xB786E94A929AE9606DE7E886914C614708F974BF1B2BF33C5BAE6B6D4899087E)), Scalar(Uint(0x8C914AAB27774A20F4C36B00BED5245758A06409FB635FD71A1EF1D2ABD9EB07)), Scalar(Uint(0xD65574439D89237B8B98DD2C6FB806E6D6D1F8044C11F5A2466B241867953124)), Scalar(Uint(0x927C73DC6EC9D0DC8A1304A8601AE610DF02717969BF2C7914825512F38CFE61)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000))]
-        //c = [Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000001)), Scalar(Uint(0xC047368FAF68B8D7AEDC273588B38314971615A7DFAD631B90D091DCB35AC4A0)), Scalar(Uint(0x2A002C66B95660DA7CB97C452388ADA02D087F8CDBE9A5FC327FA5D1C0BE2885)), Scalar(Uint(0x1AFDDF56010588FADFBC9103FAF2F9CBE826A4F8E267F8A82CCA0840D022E147)), Scalar(Uint(0x78B0B00A678065E8A29FBB0935E9C80343F7AD4514DA341CAE59931009093E03)), Scalar(Uint(0xBA4DE638473052E6DFDC510347DFBF7D36A7B15D309B692900839DE59CD33DFA)), Scalar(Uint(0xB786E94A929AE9606DE7E886914C614708F974BF1B2BF33C5BAE6B6D4899087E)), Scalar(Uint(0x8C914AAB27774A20F4C36B00BED5245758A06409FB635FD71A1EF1D2ABD9EB07)), Scalar(Uint(0xD65574439D89237B8B98DD2C6FB806E6D6D1F8044C11F5A2466B241867953124)), Scalar(Uint(0x927C73DC6EC9D0DC8A1304A8601AE610DF02717969BF2C7914825512F38CFE61)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000)), Scalar(Uint(0x0000000000000000000000000000000000000000000000000000000000000000))]
-
-        println!("com = {:?}", commitment.to_affine());
-
-
-        println!("Should be WNLA secret {:?}", v);
 
         while l.len() < self.h_vec.len() + self.h_vec_.len() {
             l.push(Scalar::ZERO);
@@ -501,10 +454,6 @@ impl ArithmeticCircuit {
             mu,
         };
 
-        println!("com = {:?}", wnla.commit(&l, &n).to_affine());
-
-        println!("mu = {:?}", mu);
-
         let proof_wnla = wnla.prove(&commitment, t, l, n);
 
         return Proof {
@@ -519,11 +468,6 @@ impl ArithmeticCircuit {
         };
     }
 
-    fn get_challenge(label: &'static [u8], t: &mut Transcript) -> Scalar {
-        let mut buf = [0u8; 32];
-        t.challenge_bytes(label, &mut buf);
-        Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap()
-    }
 
     fn linear_comb_coef(&self, i: usize, lambda: &Scalar, mu: &Scalar) -> Scalar {
         let mut coef = Scalar::ZERO;
@@ -550,9 +494,9 @@ impl ArithmeticCircuit {
         c_l0
     }
 
-    fn collect_c<P: Partition>(&self, lambda_vec: &Vec<Scalar>, mu_vec: &Vec<Scalar>, mu: &Scalar) -> (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>) {
+    fn collect_c(&self, lambda_vec: &Vec<Scalar>, mu_vec: &Vec<Scalar>, mu: &Scalar) -> (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>) {
         let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
-        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o::<P>();
+        let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o();
 
         let mu_diag_inv = diag_inv(&mu, self.dim_nm);
 
@@ -590,14 +534,14 @@ impl ArithmeticCircuit {
         return (M_lnL, M_mnL, M_lnR, M_mnR);
     }
 
-    fn collect_m_o<P: Partition>(&self) -> (Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>) {
+    fn collect_m_o(&self) -> (Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>) {
         let W_lO = (0..self.dim_nl).map(|i| Vec::from(&self.W_l[i][self.dim_nm * 2..])).collect::<Vec<Vec<Scalar>>>();
         let W_mO = (0..self.dim_nm).map(|i| Vec::from(&self.W_m[i][self.dim_nm * 2..])).collect::<Vec<Vec<Scalar>>>();
 
         let map_f = |isz: usize, jsz: usize, typ: PartitionType, W_x: &Vec<Vec<Scalar>>| -> Vec<Vec<Scalar>>{
             (0..isz).map(|i|
                 (0..jsz).map(|j|
-                    if let Some(j_) = P::map(typ, j) {
+                    if let Some(j_) = (self.partition)(typ, j) {
                         Scalar::from(W_x[i][j_])
                     } else {
                         Scalar::ZERO

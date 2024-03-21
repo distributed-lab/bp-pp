@@ -1,6 +1,9 @@
 extern crate core;
 
 pub mod wnla;
-mod util;
 pub mod circuit;
+pub mod transcript;
+pub mod range_proof;
+
+mod util;
 mod tests;
