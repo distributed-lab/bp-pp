@@ -1,8 +1,7 @@
 use std::ops::{Add, Mul};
-use k256::{FieldBytes, ProjectivePoint, Scalar};
-use k256::elliptic_curve::group::GroupEncoding;
-use k256::elliptic_curve::PrimeField;
+use k256::{ProjectivePoint, Scalar};
 use merlin::Transcript;
+use crate::transcript;
 use crate::util::*;
 
 /// Represents public information to be used in weight norm linear argument protocol.
@@ -52,15 +51,13 @@ impl WeightNormLinearArgument {
         let (g0, g1) = reduce(&self.g_vec);
         let (h0, h1) = reduce(&self.h_vec);
 
-        t.append_message(b"com", commitment.to_bytes().as_slice());
-        t.append_message(b"x", proof.x.last().unwrap().to_bytes().as_slice());
-        t.append_message(b"r", proof.r.last().unwrap().to_bytes().as_slice());
+        transcript::app_point(b"wnla_com", commitment, t);
+        transcript::app_point(b"wnla_x", &proof.x.last().unwrap(), t);
+        transcript::app_point(b"wnla_r", &proof.r.last().unwrap(), t);
         t.append_u64(b"l.sz", self.h_vec.len() as u64);
         t.append_u64(b"n.sz", self.g_vec.len() as u64);
 
-        let mut buf = [0u8; 32];
-        t.challenge_bytes(b"y", &mut buf);
-        let y = k256::Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap();
+        let y = transcript::get_challenge(b"wnla_challenge", t);
 
         let h_ = vector_add(&h0, &vector_mul_on_scalar(&h1, &y));
         let g_ = vector_add(&vector_mul_on_scalar(&g0, &self.rho), &vector_mul_on_scalar(&g1, &y));
@@ -128,15 +125,13 @@ impl WeightNormLinearArgument {
             add(vector_mul(&h1, &l1)).
             add(vector_mul(&g1, &n1));
 
-        t.append_message(b"com", commitment.to_bytes().as_slice());
-        t.append_message(b"x", x.to_bytes().as_slice());
-        t.append_message(b"r", r.to_bytes().as_slice());
+        transcript::app_point(b"wnla_com", commitment, t);
+        transcript::app_point(b"wnla_x", &x, t);
+        transcript::app_point(b"wnla_r", &r, t);
         t.append_u64(b"l.sz", l.len() as u64);
         t.append_u64(b"n.sz", n.len() as u64);
 
-        let mut buf = [0u8; 32];
-        t.challenge_bytes(b"y", &mut buf);
-        let y = k256::Scalar::from_repr(*FieldBytes::from_slice(&buf)).unwrap();
+        let y = transcript::get_challenge(b"wnla_challenge", t);
 
         let h_ = vector_add(&h0, &vector_mul_on_scalar(&h1, &y));
         let g_ = vector_add(&vector_mul_on_scalar(&g0, &self.rho), &vector_mul_on_scalar(&g1, &y));
