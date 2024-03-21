@@ -16,9 +16,9 @@ pub struct WeightNormLinearArgument {
     pub mu: Scalar,
 }
 
-/// Represents weight norm linear argument proof - zk-proof of knowledge of vectors \\(l, n\\) that
-/// satisfies commitment \\(C = v*g + <h_vec, l> + <g_vec, n>\\), where \\(v = |n|_{mu}^2 + <c, l>\\)
-/// with respect to public \\(g, g_vec, h_vec, c\\)
+/// Represents weight norm linear argument proof - zk-proof of knowledge of vectors `l`, `n` that
+/// satisfies commitment `C = v*g + <h_vec, l> + <g_vec, n>`, where `v = |n|_{mu}^2 + <c, l>`
+/// with respect to public `g`, `g_vec`, `h_vec`, `c`
 #[derive(Clone, Debug)]
 pub struct Proof {
     pub r: Vec<ProjectivePoint>,
@@ -28,8 +28,8 @@ pub struct Proof {
 }
 
 impl WeightNormLinearArgument {
-    /// Creates weight norm linear argument commitment to vectors \\(l, n\\):
-    /// \\(C = v*g + <h_vec, l> + <g_vec, n>\\), where \\(v = |n|_{mu}^2 + <c, l>\\)
+    /// Creates weight norm linear argument commitment to vectors `l`, `n`:
+    /// `C = v*g + <h_vec, l> + <g_vec, n>`, where `v = |n|_{mu}^2 + <c, l>`
     pub fn commit(&self, l: &Vec<Scalar>, n: &Vec<Scalar>) -> ProjectivePoint {
         let v = vector_mul(&self.c, l).add(weight_vector_mul(n, n, &self.mu));
         self.
