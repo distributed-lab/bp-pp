@@ -45,7 +45,11 @@ pub struct Witness {
 }
 
 /// Represents arithmetic circuit.
-pub struct ArithmeticCircuit<P: Fn(PartitionType, usize) -> Option<usize>> {
+/// P - partition function.
+pub struct ArithmeticCircuit<P>
+    where
+        P: Fn(PartitionType, usize) -> Option<usize>
+{
     pub dim_nm: usize,
     pub dim_no: usize,
     pub k: usize,
@@ -88,7 +92,10 @@ pub struct ArithmeticCircuit<P: Fn(PartitionType, usize) -> Option<usize>> {
     pub partition: P,
 }
 
-impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
+impl<P> ArithmeticCircuit<P>
+    where
+        P: Fn(PartitionType, usize) -> Option<usize>
+{
     /// Creates commitment to the arithmetic circuit witness.
     pub fn commit(&self, v: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
         self.
@@ -193,7 +200,10 @@ impl<P: Fn(PartitionType, usize) -> Option<usize>> ArithmeticCircuit<P> {
 
     /// Creates arithmetic circuit proof for the corresponding witness. Also, `v` commitments vector
     /// should correspond input witness in `witness` argument.
-    pub fn prove<T: RngCore + CryptoRng>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
+    pub fn prove<R>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
+        where
+            R: RngCore + CryptoRng
+    {
         let ro = vec![
             Scalar::generate_biased(rng),
             Scalar::generate_biased(rng),

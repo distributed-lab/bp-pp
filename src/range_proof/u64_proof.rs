@@ -56,7 +56,10 @@ impl U64RangeProof {
     }
 
     /// Creates proof that values `x` with blinding `s` lies in [0..2^64).
-    pub fn prove<T: RngCore + CryptoRng>(&self, x: u64, s: &Scalar, t: &mut Transcript, rng: &mut T) -> Proof {
+    pub fn prove<R>(&self, x: u64, s: &Scalar, t: &mut Transcript, rng: &mut R) -> Proof
+        where
+            R: RngCore + CryptoRng
+    {
         let digits = Self::u64_to_hex(x);
         let poles = Self::u64_to_hex_mapped(x);
 

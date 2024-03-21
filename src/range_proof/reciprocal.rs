@@ -85,7 +85,10 @@ impl ReciprocalRangeProof {
     }
 
     /// Creates zk-proof that committed value lies in [0..dim_np^dim_nd) range.
-    pub fn prove<T: RngCore + CryptoRng>(&self, commitment: &ProjectivePoint, witness: Witness, t: &mut Transcript, rng: &mut T) -> Proof {
+    pub fn prove<R>(&self, commitment: &ProjectivePoint, witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
+        where
+            R: RngCore + CryptoRng
+    {
         transcript::app_point(b"reciprocal_commitment", commitment, t);
         let e = transcript::get_challenge(b"reciprocal_challenge", t);
 
@@ -123,12 +126,15 @@ impl ReciprocalRangeProof {
 
         let circuit_commitment = circuit.commit(&circuit_witness.v[0], &circuit_witness.s_v[0]);
         return Proof {
-            circuit_proof: circuit.prove::<T>(&vec![circuit_commitment], circuit_witness, t, rng),
+            circuit_proof: circuit.prove::<R>(&vec![circuit_commitment], circuit_witness, t, rng),
             r: r_com,
         };
     }
 
-    fn make_circuit<P: Fn(PartitionType, usize) -> Option<usize>>(&self, e: Scalar, partition: P) -> ArithmeticCircuit<P> {
+    fn make_circuit<P>(&self, e: Scalar, partition: P) -> ArithmeticCircuit<P>
+        where
+            P: Fn(PartitionType, usize) -> Option<usize>
+    {
         let dim_nm = self.dim_nd;
         let dim_no = self.dim_np;
 
