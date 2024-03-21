@@ -10,6 +10,7 @@ mod tests {
     use k256::{ProjectivePoint, Scalar};
     use crate::circuit::{ArithmeticCircuit, PartitionType, Witness};
     use crate::range_proof;
+    use crate::range_proof::u64_proof::*;
     use crate::util::{matrix_mul_on_vector, minus, vector_add, vector_hadamard_mul, vector_mul};
     use super::*;
 
@@ -22,14 +23,14 @@ mod tests {
 
         // Base points
         let g = k256::ProjectivePoint::random(&mut rand);
-        let g_vec = (0..16).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
-        let h_vec = (0..32).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
+        let g_vec = (0..G_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
+        let h_vec = (0..H_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
 
         let public = range_proof::u64_proof::U64RangeProof {
             g,
             g_vec,
-            h_vec: h_vec[..26].to_vec(),
-            h_vec_: h_vec[26..].to_vec(),
+            h_vec: h_vec[..H_VEC_CIRCUIT_SZ].to_vec(),
+            h_vec_: h_vec[H_VEC_CIRCUIT_SZ..].to_vec(),
         };
 
         let mut pt = Transcript::new(b"u64 range proof");

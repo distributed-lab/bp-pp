@@ -6,6 +6,12 @@ use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProof, Witness};
 
+pub const G_VEC_CIRCUIT_SZ: usize = 16;
+pub const G_VEC_FULL_SZ: usize = 16;
+pub const H_VEC_CIRCUIT_SZ: usize = 26;
+pub const H_VEC_FULL_SZ: usize = 32;
+
+
 /// Represents public information for reciprocal range proof protocol for [0..2^64) range.
 #[derive(Clone, Debug)]
 pub struct U64RangeProof {

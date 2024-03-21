@@ -19,14 +19,14 @@ pub fn main() {
 
     // Base points
     let g = k256::ProjectivePoint::random(&mut rand);
-    let g_vec = (0..16).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
-    let h_vec = (0..32).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
+    let g_vec = (0..G_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
+    let h_vec = (0..H_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
 
     let public = range_proof::u64_proof::U64RangeProof {
         g,
         g_vec,
-        h_vec: h_vec[..26].to_vec(),
-        h_vec_: h_vec[26..].to_vec(),
+        h_vec: h_vec[..H_VEC_CIRCUIT_SZ].to_vec(),
+        h_vec_: h_vec[H_VEC_CIRCUIT_SZ..].to_vec(),
     };
 
     // transcript will be used for challenge generation - to move from interactive to non-interactive protocol.
