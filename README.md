@@ -1,6 +1,11 @@
 # Bulletproofs++ implementation on Rust
 
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/distributed-lab/bp-pp/issues)
+<a href="https://github.com/distributed-lab/bp-pp">
+<img src="https://img.shields.io/github/stars/distributed-lab/bp-pp?style=social"/>
+</a>
 
 ## Abstract
 
