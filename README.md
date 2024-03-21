@@ -1,6 +1,5 @@
 # Bulletproofs++ implementation on Rust
 
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/distributed-lab/bp-pp/issues)
 <a href="https://github.com/distributed-lab/bp-pp">
@@ -16,10 +15,10 @@ use-case for reciprocal range proofs.
 Implemented protocol has 2G points advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
 advantage will increase for more values per proof.
 
-| Protocol | G | F |
-|---------- |---- |--- |
-| BP | 16 | 5 |
-| BP+ | 15 | 3 |
+| Protocol | G  | F |
+|----------|----|---|
+| BP       | 16 | 5 |
+| BP+      | 15 | 3 |
 | Our BP++ | 13 | 3 |
 
 ## Example of usage
