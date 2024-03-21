@@ -11,7 +11,7 @@ mod tests {
     use crate::circuit::{ArithmeticCircuit, PartitionType, Witness};
     use crate::range_proof;
     use crate::range_proof::u64_proof::*;
-    use crate::util::{matrix_mul_on_vector, minus, vector_add, vector_hadamard_mul, vector_mul};
+    use crate::util::{minus, vector_add, vector_hadamard_mul, vector_mul};
     use super::*;
 
     #[test]
@@ -84,9 +84,6 @@ mod tests {
 
         println!("Circuit check: {:?} = {:?}", vector_mul(&W_m[0], &w), vector_hadamard_mul(&w_l, &w_r));
         println!("Circuit check: {:?} = 0", vector_add(&vector_add(&vec![vector_mul(&W_l[0], &w), vector_mul(&W_l[1], &w)], &w_v), &a_l));
-
-        println!("Wl*w = {:?}", matrix_mul_on_vector(&w, &W_l));
-        println!("Wm*w = {:?}", matrix_mul_on_vector(&w, &W_m));
 
         let mut rand = OsRng::default();
 

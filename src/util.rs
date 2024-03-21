@@ -139,6 +139,7 @@ pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
     }).collect::<Vec<T>>()
 }
 
+#[allow(dead_code)]
 pub fn matrix_mul_on_vector<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>

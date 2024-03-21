@@ -142,23 +142,20 @@ impl ReciprocalRangeProof {
         let dim_nl = dim_nv;
         let dim_nw = self.dim_nd * 2 + self.dim_np;
 
-        let a_m = (0..dim_nm).map(|_| Scalar::ONE).collect();
-        let W_m = (0..dim_nm).map(|i|
-            (0..dim_nw).map(|j| if j == i + dim_nm { minus(&e) } else { Scalar::ZERO }).collect::<Vec<Scalar>>()
-        ).collect::<Vec<Vec<Scalar>>>();
+        let a_m = vec![Scalar::ONE; dim_nm];
 
-        let a_l = (0..dim_nl).map(|_| Scalar::ZERO).collect();
+        let mut W_m = vec![vec![Scalar::ZERO; dim_nw]; dim_nm];
+        (0..dim_nm).for_each(|i| W_m[i][i + dim_nm] = minus(&e));
 
+        let a_l = vec![Scalar::ZERO; dim_nl];
         let base = Scalar::from(self.dim_np as u32);
 
-        let mut W_l = (0..dim_nl).map(|_|
-            (0..dim_nw).map(|_| Scalar::ZERO).collect::<Vec<Scalar>>()
-        ).collect::<Vec<Vec<Scalar>>>();
+        let mut W_l = vec![vec![Scalar::ZERO; dim_nw]; dim_nl];
 
-        // v
+        // fill for v-part in w vector
         (0..dim_nm).for_each(|i| W_l[0][i] = minus(&pow(&base, i)));
 
-        // r
+        // fill for r-part in w vector
         (0..dim_nm).for_each(|i|
             (0..dim_nm).for_each(|j| W_l[i + 1][j + dim_nm] = Scalar::ONE)
         );
@@ -166,7 +163,9 @@ impl ReciprocalRangeProof {
         (0..dim_nm).for_each(|i| W_l[i + 1][i + dim_nm] = Scalar::ZERO);
 
         (0..dim_nm).for_each(|i|
-            (0..dim_no).for_each(|j| W_l[i + 1][j + 2 * dim_nm] = minus(&(e.add(Scalar::from(j as u32)).invert().unwrap())))
+            (0..dim_no).for_each(|j|
+                W_l[i + 1][j + 2 * dim_nm] = minus(&(e.add(Scalar::from(j as u32)).invert().unwrap()))
+            )
         );
 
         ArithmeticCircuit {

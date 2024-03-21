@@ -122,11 +122,20 @@ impl<P> ArithmeticCircuit<P>
         let lambda_vec = self.collect_lambda(&lambda, &mu);
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c(&lambda_vec, &mu_vec, &mu);
+        let (
+            c_nL,
+            c_nR,
+            c_nO,
+            c_lL,
+            c_lR,
+            c_lO
+        ) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
         let mut v_ = ProjectivePoint::IDENTITY;
         (0..self.k).
-            for_each(|i| v_ = v_.add(v[i].mul(self.linear_comb_coef(i, &lambda, &mu))));
+            for_each(|i|
+                v_ = v_.add(v[i].mul(self.linear_comb_coef(i, &lambda, &mu)))
+            );
         v_ = v_.mul(Scalar::from(2u32));
 
         transcript::app_point(b"commitment_cs", &proof.c_s, t);
@@ -302,24 +311,37 @@ impl<P> ArithmeticCircuit<P>
         let lambda_vec = self.collect_lambda(&lambda, &mu);
         let mu_vec = vector_mul_on_scalar(&e(&mu, self.dim_nm), &mu);
 
-        let (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO) = self.collect_c(&lambda_vec, &mu_vec, &mu);
+        let (
+            c_nL,
+            c_nR,
+            c_nO,
+            c_lL,
+            c_lR,
+            c_lO
+        ) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
         let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect();
         let ns = (0..self.dim_nm).map(|_| Scalar::generate_biased(rng)).collect();
 
         let mut v_0 = Scalar::ZERO;
         (0..self.k).
-            for_each(|i| v_0 = v_0.add(witness.v[i][0].mul(self.linear_comb_coef(i, &lambda, &mu))));
+            for_each(|i|
+                v_0 = v_0.add(witness.v[i][0].mul(self.linear_comb_coef(i, &lambda, &mu)))
+            );
         v_0 = v_0.mul(Scalar::from(2u32));
 
         let mut rv = vec![Scalar::ZERO; 9];
         (0..self.k).
-            for_each(|i| rv[0] = rv[0].add(witness.s_v[i].mul(self.linear_comb_coef(i, &lambda, &mu))));
+            for_each(|i|
+                rv[0] = rv[0].add(witness.s_v[i].mul(self.linear_comb_coef(i, &lambda, &mu)))
+            );
         rv[0] = rv[0].mul(Scalar::from(2u32));
 
         let mut v_1 = vec![Scalar::ZERO; self.dim_nv - 1];
         (0..self.k).
-            for_each(|i| v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &self.linear_comb_coef(i, &lambda, &mu))));
+            for_each(|i|
+                v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &self.linear_comb_coef(i, &lambda, &mu)))
+            );
         v_1 = vector_mul_on_scalar(&v_1, &Scalar::from(2u32));
 
         let c_l0 = self.collect_cl0(&lambda, &mu);
