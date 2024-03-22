@@ -8,11 +8,12 @@
 
 ## Abstract
 
-Present Rust library contains the implementation of Bulletproofs++ weight norm linear argument protocol, arithmetic
-circuit protocol and reciprocal range proof protocol. Also, contains the uint64 range proof protocol as a primary
+Present Rust library contains the implementation of Bulletproofs++
+over [secp256k1 curve](https://docs.rs/k256/latest/k256/) that includes: weight norm linear argument protocol,
+arithmetic circuit protocol and reciprocal range proofs. Also, contains the `u64` range proof protocol as a primary
 use-case for reciprocal range proofs.
 
-Implemented protocol has 2G points advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
+Implemented solution has 2G points advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
 advantage will increase for more values per proof.
 
 | Protocol | G  | F |
@@ -29,7 +30,7 @@ and `Deserialize` was implemented.
 
 ## Example of usage
 
-Use [tests](./src/tests.rs) to run the provided example: 
+Use [tests](./src/tests.rs) to run the provided example:
 
 ```rust
 pub fn main() {
