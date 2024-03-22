@@ -27,6 +27,7 @@ pub struct Proof {
     pub n: Vec<Scalar>,
 }
 
+/// Represent serializable version of  weight norm linear argument proof (uses AffinePoint instead of ProjectivePoint).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SerializableProof {
     pub r: Vec<AffinePoint>,

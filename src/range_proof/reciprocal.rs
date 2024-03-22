@@ -29,6 +29,8 @@ pub struct Proof {
     pub r: ProjectivePoint,
 }
 
+/// Represent serializable version of reciprocal proof (uses AffinePoint instead of ProjectivePoint
+/// and serialized version of circuit proof).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SerializableProof {
     pub circuit_proof: circuit::SerializableProof,

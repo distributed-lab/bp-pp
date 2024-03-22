@@ -30,6 +30,7 @@ pub struct Proof {
     pub n: Vec<Scalar>,
 }
 
+/// Represent serializable version of arithmetic circuit proof (uses AffinePoint instead of ProjectivePoint).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SerializableProof {
     pub c_l: AffinePoint,
