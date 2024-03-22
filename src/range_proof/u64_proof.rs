@@ -1,5 +1,5 @@
-///! Definition and implementation of the u64 range-proof protocol based on reciprocal protocol.
 #![allow(non_snake_case)]
+///! Definition and implementation of the u64 range-proof protocol based on reciprocal protocol.
 
 use std::ops::{Add, Mul};
 use k256::{ProjectivePoint, Scalar};

@@ -1,5 +1,5 @@
-///! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
 #![allow(non_snake_case)]
+///! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
 
 use std::ops::{Add, Mul, Sub};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
