@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+
 ///! Definition and implementation of the reciprocal range-proof protocol based on arithmetic circuits protocol.
 
 use std::ops::{Add, Mul};
@@ -97,15 +98,7 @@ impl ReciprocalRangeProofProtocol {
         transcript::app_point(b"reciprocal_commitment", commitment, t);
         let e = transcript::get_challenge(b"reciprocal_challenge", t);
 
-        let partition = |typ: PartitionType, index: usize| -> Option<usize>{
-            if typ == PartitionType::LL && index < self.dim_np {
-                Some(index)
-            } else {
-                None
-            }
-        };
-
-        let circuit = self.make_circuit(e, partition);
+        let circuit = self.make_circuit(e);
 
         let circuit_commitment = commitment.add(&proof.r);
 
@@ -134,15 +127,7 @@ impl ReciprocalRangeProofProtocol {
         let w_r = r;
         let w_o = witness.m;
 
-        let partition = |typ: PartitionType, index: usize| -> Option<usize>{
-            if typ == PartitionType::LL && index < self.dim_np {
-                Some(index)
-            } else {
-                None
-            }
-        };
-
-        let circuit = self.make_circuit(e, partition);
+        let circuit = self.make_circuit(e);
 
         let circuit_witness = circuit::Witness {
             v: vec![v],
@@ -159,9 +144,8 @@ impl ReciprocalRangeProofProtocol {
         };
     }
 
-    fn make_circuit<P>(&self, e: Scalar, partition: P) -> ArithmeticCircuit<P>
-        where
-            P: Fn(PartitionType, usize) -> Option<usize>
+    /// Creates circuit parameters based on provided challenge. For the same challenge will generate same parameters.
+    fn make_circuit<'a>(&'a self, e: Scalar) -> ArithmeticCircuit<impl Fn(PartitionType, usize) -> Option<usize> + 'a>
     {
         let dim_nm = self.dim_nd;
         let dim_no = self.dim_np;
@@ -195,6 +179,15 @@ impl ReciprocalRangeProofProtocol {
                 W_l[i + 1][j + 2 * dim_nm] = minus(&(e.add(Scalar::from(j as u32)).invert().unwrap()))
             )
         );
+
+        // partition function -> map all to ll
+        let partition = |typ: PartitionType, index: usize| -> Option<usize>{
+            if typ == PartitionType::LL && index < self.dim_np {
+                Some(index)
+            } else {
+                None
+            }
+        };
 
         ArithmeticCircuit {
             dim_nm,
