@@ -1,3 +1,4 @@
+///! Definition and implementation of the reciprocal range-proof protocol based on arithmetic circuits protocol.
 #![allow(non_snake_case)]
 
 use std::ops::{Add, Mul};

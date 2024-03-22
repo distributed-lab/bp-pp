@@ -1,3 +1,4 @@
+///! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
 #![allow(non_snake_case)]
 
 use std::ops::{Add, Mul, Sub};

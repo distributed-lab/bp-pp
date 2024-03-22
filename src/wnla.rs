@@ -1,3 +1,4 @@
+///! Definition and implementation of the Bulletproofs++ weight norm linear argument protocol.
 use std::ops::{Add, Mul};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
 use merlin::Transcript;
