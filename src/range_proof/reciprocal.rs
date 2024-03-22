@@ -57,8 +57,8 @@ impl From<&Proof> for SerializableProof {
     }
 }
 
-/// Represents public reciprocal range proof information. Using this information and challenge both
-/// prover and verifier can derive the arithmetic circuit.
+/// Represents public reciprocal range proof protocol information. Using this information and challenge
+/// both prover and verifier can derive the arithmetic circuit.
 #[derive(Clone, Debug)]
 pub struct ReciprocalRangeProofProtocol {
     /// Count of private proles (size of committed value). Equals to: `dim_nm`. Also, `dim_nv = 1 + dim_nd`.
