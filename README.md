@@ -21,8 +21,8 @@ advantage will increase for more values per proof.
 | BP+      | 15 | 3 |
 | Our BP++ | 13 | 3 |
 
-This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges as was recommended
-by Bulletproofs protocol authors.
+This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges generation as was
+recommended by Bulletproofs protocol authors.
 
 ## Example of usage
 
