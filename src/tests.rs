@@ -1,6 +1,3 @@
-use merlin::Transcript;
-use crate::wnla::WeightNormLinearArgument;
-
 #[cfg(test)]
 mod tests {
     #![allow(non_snake_case)]
@@ -13,16 +10,15 @@ mod tests {
     use crate::range_proof::reciprocal;
     use crate::range_proof::u64_proof::*;
     use crate::util::{minus};
-    use super::*;
 
     #[test]
     fn u64_proof_works() {
         let mut rand = OsRng::default();
 
         let x = 123456u64;
-        let s = Scalar::generate_biased(&mut rand);
+        let s = k256::Scalar::generate_biased(&mut rand);
 
-        println!("Value {}, blinding: {}", x,  serde_json::to_string_pretty(&s).unwrap());
+        println!("Value {}, blinding: {}", x, serde_json::to_string_pretty(&s).unwrap());
 
         // Base points
         let g = k256::ProjectivePoint::random(&mut rand);
@@ -37,13 +33,13 @@ mod tests {
 
         let commitment = public.commit_value(x, &s);
 
-        let mut pt = Transcript::new(b"u64 range proof");
+        let mut pt = merlin::Transcript::new(b"u64 range proof");
         let proof = public.prove(x, &s, &mut pt, &mut rand);
 
         println!("Commitment: {}", serde_json::to_string_pretty(&commitment.to_affine()).unwrap());
         println!("Proof: {}", serde_json::to_string_pretty(&reciprocal::SerializableProof::from(&proof)).unwrap());
 
-        let mut vt = Transcript::new(b"u64 range proof");
+        let mut vt = merlin::Transcript::new(b"u64 range proof");
         assert!(public.verify(&commitment, proof, &mut vt));
     }
 
@@ -132,12 +128,12 @@ mod tests {
 
         let v = (0..k).map(|i| circuit.commit(&witness.v[i], &witness.s_v[i])).collect();
 
-        let mut pt = Transcript::new(b"circuit test");
+        let mut pt = merlin::Transcript::new(b"circuit test");
         let proof = circuit.prove::<OsRng>(&v, witness, &mut pt, &mut rand);
 
         println!("{}", serde_json::to_string_pretty(&circuit::SerializableProof::from(&proof)).unwrap());
 
-        let mut vt = Transcript::new(b"circuit test");
+        let mut vt = merlin::Transcript::new(b"circuit test");
         assert!(circuit.verify(&v, &mut vt, proof));
     }
 
@@ -153,7 +149,7 @@ mod tests {
         let c = (0..N).map(|_| k256::Scalar::generate_biased(&mut rand)).collect();
         let rho = k256::Scalar::generate_biased(&mut rand);
 
-        let wnla = WeightNormLinearArgument {
+        let wnla = wnla::WeightNormLinearArgument {
             g,
             g_vec,
             h_vec,
@@ -166,13 +162,13 @@ mod tests {
         let n = vec![Scalar::from(8 as u32), Scalar::from(7 as u32), Scalar::from(6 as u32), Scalar::from(5 as u32)];
 
         let commit = wnla.commit(&l, &n);
-        let mut pt = Transcript::new(b"wnla test");
+        let mut pt = merlin::Transcript::new(b"wnla test");
 
         let proof = wnla.prove(&commit, &mut pt, l, n);
 
         println!("{}", serde_json::to_string_pretty(&wnla::SerializableProof::from(&proof)).unwrap());
 
-        let mut vt = Transcript::new(b"wnla test");
+        let mut vt = merlin::Transcript::new(b"wnla test");
         assert!(wnla.verify(&commit, &mut vt, proof))
     }
 }

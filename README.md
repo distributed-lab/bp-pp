@@ -36,7 +36,7 @@ pub fn main() {
     let mut rand = OsRng::default();
 
     let x = 123456u64; // private value to create proof for.
-    let s = Scalar::generate_biased(&mut rand); // blinding value
+    let s = k256::Scalar::generate_biased(&mut rand); // blinding value
 
     // Base points
     let g = k256::ProjectivePoint::random(&mut rand);
@@ -51,7 +51,7 @@ pub fn main() {
 
     // transcript will be used for challenge generation - to move from interactive to non-interactive protocol.
     // transcript should be the new instance but with same label for prover and verifier. 
-    let mut pt = Transcript::new(b"u64 range proof");
+    let mut pt = merlin::Transcript::new(b"u64 range proof");
     let proof = public.prove(x, &s, &mut pt, &mut rand);
 
     // value commitment: `commitment = x*g + s*h_vec[0]`
@@ -59,7 +59,7 @@ pub fn main() {
 
     println!("{}", serde_json::to_string_pretty(&reciprocal::SerializableProof::from(&proof)).unwrap());
 
-    let mut vt = Transcript::new(b"u64 range proof");
+    let mut vt = merlin::Transcript::new(b"u64 range proof");
     assert!(public.verify(&commitment, proof, &mut vt));
 }
 ```
