@@ -4,8 +4,9 @@ use std::ops::{Add, Mul};
 use k256::{ProjectivePoint, Scalar};
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
-use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProof, Witness};
+use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProofProtocol, Witness};
 
+#[allow(dead_code)]
 const G_VEC_CIRCUIT_SZ: usize = 16;
 pub const G_VEC_FULL_SZ: usize = 16;
 const H_VEC_CIRCUIT_SZ: usize = 26;
@@ -14,7 +15,7 @@ pub const H_VEC_FULL_SZ: usize = 32;
 
 /// Represents public information for reciprocal range proof protocol for [0..2^64) range.
 #[derive(Clone, Debug)]
-pub struct U64RangeProof {
+pub struct U64RangeProofProtocol {
     /// Will be used for the value commitment as: `commitment = x*g + s*h_vec[0]`
     pub g: ProjectivePoint,
     /// Dimension: `16`
@@ -25,7 +26,7 @@ pub struct U64RangeProof {
     pub h_vec: Vec<ProjectivePoint>,
 }
 
-impl U64RangeProof {
+impl U64RangeProofProtocol {
     /// Count of digits of u64 in hex representation.
     const DIM_ND: usize = 16;
     /// Base (hex)
@@ -38,7 +39,7 @@ impl U64RangeProof {
 
     /// Verifies that committed value in `v` lies in range [0..2^64).
     pub fn verify(&self, v: &ProjectivePoint, proof: Proof, t: &mut Transcript) -> bool {
-        let reciprocal = ReciprocalRangeProof {
+        let reciprocal = ReciprocalRangeProofProtocol {
             dim_nd: Self::DIM_ND,
             dim_np: Self::DIM_NP,
             g: self.g,
@@ -59,7 +60,7 @@ impl U64RangeProof {
         let digits = Self::u64_to_hex(x);
         let poles = Self::u64_to_hex_mapped(x);
 
-        let reciprocal = ReciprocalRangeProof {
+        let reciprocal = ReciprocalRangeProofProtocol {
             dim_nd: Self::DIM_ND,
             dim_np: Self::DIM_NP,
             g: self.g,

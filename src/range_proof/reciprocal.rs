@@ -31,7 +31,7 @@ pub struct Proof {
 /// Represents public reciprocal range proof information. Using this information and challenge both
 /// prover and verifier can derive the arithmetic circuit.
 #[derive(Clone, Debug)]
-pub struct ReciprocalRangeProof {
+pub struct ReciprocalRangeProofProtocol {
     /// Count of private proles (size of committed value). Equals to: `dim_nm`. Also, `dim_nv = 1 + dim_nd`.
     pub dim_nd: usize,
     /// Count of public poles (number system base). Equals to: `dim_no`.
@@ -53,7 +53,7 @@ pub struct ReciprocalRangeProof {
     pub h_vec_: Vec<ProjectivePoint>,
 }
 
-impl ReciprocalRangeProof {
+impl ReciprocalRangeProofProtocol {
     /// Creates commitment for the private value and blinding: `commitment = x*g + s*h_vec[0]`
     pub fn commit_value(&self, x: &Scalar, s: &Scalar) -> ProjectivePoint {
         self.g.mul(x).add(&self.h_vec[0].mul(s))

@@ -26,7 +26,7 @@ mod tests {
         let g_vec = (0..G_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
         let h_vec = (0..H_VEC_FULL_SZ).map(|_| k256::ProjectivePoint::random(&mut rand)).collect::<Vec<ProjectivePoint>>();
 
-        let public = range_proof::u64_proof::U64RangeProof {
+        let public = range_proof::u64_proof::U64RangeProofProtocol {
             g,
             g_vec,
             h_vec,
