@@ -1,6 +1,6 @@
 pub mod wnla;
 pub mod circuit;
-pub mod transcript;
+pub(crate) mod transcript;
 pub mod range_proof;
 
 mod util;
