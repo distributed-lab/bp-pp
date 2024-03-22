@@ -9,9 +9,10 @@ mod tests {
     use k256::elliptic_curve::rand_core::OsRng;
     use k256::{ProjectivePoint, Scalar};
     use crate::circuit::{ArithmeticCircuit, PartitionType, Witness};
-    use crate::range_proof;
+    use crate::{circuit, range_proof, wnla};
+    use crate::range_proof::reciprocal;
     use crate::range_proof::u64_proof::*;
-    use crate::util::{minus, vector_add, vector_hadamard_mul, vector_mul};
+    use crate::util::{minus};
     use super::*;
 
     #[test]
@@ -20,6 +21,8 @@ mod tests {
 
         let x = 123456u64;
         let s = Scalar::generate_biased(&mut rand);
+
+        println!("Value {}, blinding: {}", x,  serde_json::to_string_pretty(&s).unwrap());
 
         // Base points
         let g = k256::ProjectivePoint::random(&mut rand);
@@ -32,10 +35,13 @@ mod tests {
             h_vec,
         };
 
+        let commitment = public.commit_value(x, &s);
+
         let mut pt = Transcript::new(b"u64 range proof");
         let proof = public.prove(x, &s, &mut pt, &mut rand);
 
-        let commitment = public.commit_value(x, &s);
+        println!("Commitment: {}", serde_json::to_string_pretty(&commitment.to_affine()).unwrap());
+        println!("Proof: {}", serde_json::to_string_pretty(&reciprocal::SerializableProof::from(&proof)).unwrap());
 
         let mut vt = Transcript::new(b"u64 range proof");
         assert!(public.verify(&commitment, proof, &mut vt));
@@ -58,10 +64,6 @@ mod tests {
         let w_r = vec![Scalar::from(y)];
         let w_o = vec![Scalar::from(z), Scalar::from(r)];
 
-        let w_v = vec![Scalar::from(x), Scalar::from(y)];
-
-        let w = vec![Scalar::from(x), Scalar::from(y), Scalar::from(z), Scalar::from(r)]; // w = wl||wr||wo
-
         let dim_nm = 1;
         let dim_no = 2;
         let dim_nv = 2;
@@ -81,8 +83,10 @@ mod tests {
 
         let a_l = vec![minus(&r), minus(&z)]; // Nl
 
-        println!("Circuit check: {:?} = {:?}", vector_mul(&W_m[0], &w), vector_hadamard_mul(&w_l, &w_r));
-        println!("Circuit check: {:?} = 0", vector_add(&vector_add(&vec![vector_mul(&W_l[0], &w), vector_mul(&W_l[1], &w)], &w_v), &a_l));
+        //let w_v = vec![Scalar::from(x), Scalar::from(y)];
+        //let w = vec![Scalar::from(x), Scalar::from(y), Scalar::from(z), Scalar::from(r)]; // w = wl||wr||wo
+        //println!("Circuit check: {:?} = {:?}", vector_mul(&W_m[0], &w), vector_hadamard_mul(&w_l, &w_r));
+        //println!("Circuit check: {:?} = 0", vector_add(&vector_add(&vec![vector_mul(&W_l[0], &w), vector_mul(&W_l[1], &w)], &w_v), &a_l));
 
         let mut rand = OsRng::default();
 
@@ -131,7 +135,7 @@ mod tests {
         let mut pt = Transcript::new(b"circuit test");
         let proof = circuit.prove::<OsRng>(&v, witness, &mut pt, &mut rand);
 
-        println!("{:?}", &proof);
+        println!("{}", serde_json::to_string_pretty(&circuit::SerializableProof::from(&proof)).unwrap());
 
         let mut vt = Transcript::new(b"circuit test");
         assert!(circuit.verify(&v, &mut vt, proof));
@@ -165,7 +169,8 @@ mod tests {
         let mut pt = Transcript::new(b"wnla test");
 
         let proof = wnla.prove(&commit, &mut pt, l, n);
-        println!("{:?}", &proof);
+
+        println!("{}", serde_json::to_string_pretty(&wnla::SerializableProof::from(&proof)).unwrap());
 
         let mut vt = Transcript::new(b"wnla test");
         assert!(wnla.verify(&commit, &mut vt, proof))

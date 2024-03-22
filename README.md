@@ -24,7 +24,12 @@ advantage will increase for more values per proof.
 This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges generation as was
 recommended by Bulletproofs protocol authors.
 
+All `Proof` data models has corresponding `SerializeProof` models where [serde](https://serde.rs/) `Serialize`
+and `Deserialize` was implemented.
+
 ## Example of usage
+
+Use [tests](./src/tests.rs) to run the provided example: 
 
 ```rust
 pub fn main() {
@@ -51,6 +56,8 @@ pub fn main() {
 
     // value commitment: `commitment = x*g + s*h_vec[0]`
     let commitment = public.commit_value(x, &s);
+
+    println!("{}", serde_json::to_string_pretty(&reciprocal::SerializableProof::from(&proof)).unwrap());
 
     let mut vt = Transcript::new(b"u64 range proof");
     assert!(public.verify(&commitment, proof, &mut vt));

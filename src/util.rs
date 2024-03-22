@@ -97,6 +97,7 @@ pub fn pow(s: &Scalar, n: usize) -> Scalar {
     return s.pow(&[n as u64]);
 }
 
+#[allow(dead_code)]
 pub fn vector_hadamard_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T>
