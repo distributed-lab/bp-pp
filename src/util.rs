@@ -39,7 +39,7 @@ pub fn weight_vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>, weight: &Scalar) -> T
         result = result.add(a_val.mul(b_val.mul(&exp)));
     });
 
-    return result;
+    result
 }
 
 pub fn vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> T
@@ -55,7 +55,7 @@ pub fn vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> T
         result = result.add(a_val.mul(*b_val));
     });
 
-    return result;
+    result
 }
 
 pub fn vector_mul_on_scalar<'a, T>(a: &Vec<T>, s: &'a Scalar) -> Vec<T>
@@ -94,7 +94,7 @@ pub fn e(v: &Scalar, n: usize) -> Vec<Scalar> {
 }
 
 pub fn pow(s: &Scalar, n: usize) -> Scalar {
-    return s.pow(&[n as u64]);
+    s.pow([n as u64])
 }
 
 #[allow(dead_code)]
@@ -111,7 +111,7 @@ pub fn vector_tensor_mul<'a, T>(a: &'a Vec<T>, b: &'a Vec<Scalar>) -> Vec<T>
     where
         T: Copy + Mul<&'a Scalar, Output=T>
 {
-    b.iter().map(|x| vector_mul_on_scalar(&a, x)).collect::<Vec<Vec<T>>>().concat()
+    b.iter().map(|x| vector_mul_on_scalar(a, x)).collect::<Vec<Vec<T>>>().concat()
 }
 
 pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
