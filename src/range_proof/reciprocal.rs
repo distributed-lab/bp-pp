@@ -102,7 +102,7 @@ impl ReciprocalRangeProofProtocol {
 
         let circuit_commitment = commitment.add(&proof.r);
 
-        circuit.verify(&vec![circuit_commitment], t, proof.circuit_proof)
+        circuit.verify(&[circuit_commitment], t, proof.circuit_proof)
     }
 
     /// Creates zk-proof that committed value lies in [0..dim_np^dim_nd) range.
@@ -139,7 +139,7 @@ impl ReciprocalRangeProofProtocol {
 
         let circuit_commitment = circuit.commit(&circuit_witness.v[0], &circuit_witness.s_v[0]);
         Proof {
-            circuit_proof: circuit.prove::<R>(&vec![circuit_commitment], circuit_witness, t, rng),
+            circuit_proof: circuit.prove::<R>(&[circuit_commitment], circuit_witness, t, rng),
             r: r_com,
         }
     }

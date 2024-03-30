@@ -142,7 +142,7 @@ impl<P> ArithmeticCircuit<P>
         P: Fn(PartitionType, usize) -> Option<usize>
 {
     /// Creates commitment to the arithmetic circuit witness.
-    pub fn commit(&self, v: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
+    pub fn commit(&self, v: &[Scalar], s: &Scalar) -> ProjectivePoint {
         self.
             g.mul(&v[0]).
             add(&self.h_vec[0].mul(s)).
@@ -150,7 +150,7 @@ impl<P> ArithmeticCircuit<P>
     }
 
     /// Verifies arithmetic circuit proof with respect to the `v` commitments vector.
-    pub fn verify(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
+    pub fn verify(&self, v: &[ProjectivePoint], t: &mut Transcript, proof: Proof) -> bool {
         transcript::app_point(b"commitment_cl", &proof.c_l, t);
         transcript::app_point(b"commitment_cr", &proof.c_r, t);
         transcript::app_point(b"commitment_co", &proof.c_o, t);
@@ -254,7 +254,7 @@ impl<P> ArithmeticCircuit<P>
 
     /// Creates arithmetic circuit proof for the corresponding witness. Also, `v` commitments vector
     /// should correspond input witness in `witness` argument.
-    pub fn prove<R>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
+    pub fn prove<R>(&self, v: &[ProjectivePoint], witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
         where
             R: RngCore + CryptoRng
     {
@@ -385,7 +385,7 @@ impl<P> ArithmeticCircuit<P>
         let mut v_1 = vec![Scalar::ZERO; self.dim_nv - 1];
         (0..self.k).
             for_each(|i|
-                v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &self.linear_comb_coef(i, &lambda, &mu)))
+                v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..], &self.linear_comb_coef(i, &lambda, &mu)))
             );
         v_1 = vector_mul_on_scalar(&v_1, &Scalar::from(2u32));
 
@@ -570,7 +570,7 @@ impl<P> ArithmeticCircuit<P>
             c_l0 = e(lambda, self.dim_nv)[1..].to_vec();
         }
         if self.f_m {
-            c_l0 = vector_sub(&c_l0, &vector_mul_on_scalar(&e(mu, self.dim_nv)[1..].to_vec(), mu));
+            c_l0 = vector_sub(&c_l0, &vector_mul_on_scalar(&e(mu, self.dim_nv)[1..], mu));
         }
 
         c_l0

@@ -3,7 +3,7 @@ use std::ops::{Add, Mul, Sub};
 use k256::elliptic_curve::Field;
 use k256::Scalar;
 
-pub fn reduce<T>(v: &Vec<T>) -> (Vec<T>, Vec<T>) where T: Copy {
+pub fn reduce<T>(v: &[T]) -> (Vec<T>, Vec<T>) where T: Copy {
     let res0 = v.iter().
         enumerate().
         filter(|(i, _)| *i as i32 % 2 == 0).
@@ -58,7 +58,7 @@ pub fn vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> T
     result
 }
 
-pub fn vector_mul_on_scalar<'a, T>(a: &Vec<T>, s: &'a Scalar) -> Vec<T>
+pub fn vector_mul_on_scalar<'a, T>(a: &[T], s: &'a Scalar) -> Vec<T>
     where
         T: Copy + Mul<&'a Scalar, Output=T>
 {
@@ -107,7 +107,7 @@ pub fn vector_hadamard_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> Vec<T>
     a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.mul(*b_val)).collect::<Vec<T>>()
 }
 
-pub fn vector_tensor_mul<'a, T>(a: &'a Vec<T>, b: &'a Vec<Scalar>) -> Vec<T>
+pub fn vector_tensor_mul<'a, T>(a: &'a [T], b: &'a [Scalar]) -> Vec<T>
     where
         T: Copy + Mul<&'a Scalar, Output=T>
 {
@@ -130,7 +130,7 @@ pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
     ).collect::<Vec<Vec<Scalar>>>()
 }
 
-pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
+pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &[Vec<Scalar>]) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
@@ -141,7 +141,7 @@ pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
 }
 
 #[allow(dead_code)]
-pub fn matrix_mul_on_vector<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
+pub fn matrix_mul_on_vector<T>(a: &Vec<T>, m: &[Vec<Scalar>]) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
