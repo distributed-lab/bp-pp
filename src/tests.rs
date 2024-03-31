@@ -6,10 +6,9 @@ mod tests {
     use k256::elliptic_curve::rand_core::OsRng;
     use k256::{ProjectivePoint, Scalar};
     use crate::circuit::{ArithmeticCircuit, PartitionType, Witness};
-    use crate::{circuit, range_proof, wnla};
-    use crate::range_proof::reciprocal;
+    use crate::{range_proof, wnla};
     use crate::range_proof::u64_proof::*;
-    use crate::util::{minus};
+    use crate::util::minus;
 
     #[test]
     fn u64_proof_works() {
@@ -36,11 +35,13 @@ mod tests {
         let mut pt = merlin::Transcript::new(b"u64 range proof");
         let proof = public.prove(x, &s, &mut pt, &mut rand);
 
-        println!("Commitment: {}", serde_json::to_string_pretty(&commitment.to_affine()).unwrap());
-        println!("Proof: {}", serde_json::to_string_pretty(&reciprocal::SerializableProof::from(&proof)).unwrap());
-
         let mut vt = merlin::Transcript::new(b"u64 range proof");
-        assert!(public.verify(&commitment, proof, &mut vt));
+
+        assert!(
+            public.verify(&commitment, proof.clone(), &mut vt),
+            "failed to verfiy proof {:?} with commitment {:?}",
+            commitment, proof,
+        );
     }
 
     #[test]
@@ -131,10 +132,12 @@ mod tests {
         let mut pt = merlin::Transcript::new(b"circuit test");
         let proof = circuit.prove::<OsRng>(&v, witness, &mut pt, &mut rand);
 
-        println!("{}", serde_json::to_string_pretty(&circuit::SerializableProof::from(&proof)).unwrap());
-
         let mut vt = merlin::Transcript::new(b"circuit test");
-        assert!(circuit.verify(&v, &mut vt, proof));
+        assert!(
+            circuit.verify(&v, &mut vt, proof.clone()),
+            "failed to verify with proof = {:?}",
+            proof,
+        );
     }
 
     #[test]
@@ -166,9 +169,12 @@ mod tests {
 
         let proof = wnla.prove(&commit, &mut pt, l, n);
 
-        println!("{}", serde_json::to_string_pretty(&wnla::SerializableProof::from(&proof)).unwrap());
-
         let mut vt = merlin::Transcript::new(b"wnla test");
-        assert!(wnla.verify(&commit, &mut vt, proof))
+
+        assert!(
+            wnla.verify(&commit, &mut vt, proof.clone()),
+            "failed to verify WNLA proof = {:?}",
+            proof,
+        )
     }
 }
