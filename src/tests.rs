@@ -126,7 +126,7 @@ mod tests {
             w_o,
         };
 
-        let v = (0..k).map(|i| circuit.commit(&witness.v[i], &witness.s_v[i])).collect();
+        let v = (0..k).map(|i| circuit.commit(&witness.v[i], &witness.s_v[i])).collect::<Vec<ProjectivePoint>>();
 
         let mut pt = merlin::Transcript::new(b"circuit test");
         let proof = circuit.prove::<OsRng>(&v, witness, &mut pt, &mut rand);

@@ -3,7 +3,7 @@ use std::ops::{Add, Mul, Sub};
 use k256::elliptic_curve::Field;
 use k256::Scalar;
 
-pub fn reduce<T>(v: &Vec<T>) -> (Vec<T>, Vec<T>) where T: Copy {
+pub fn reduce<T>(v: &[T]) -> (Vec<T>, Vec<T>) where T: Copy {
     let res0 = v.iter().
         enumerate().
         filter(|(i, _)| *i as i32 % 2 == 0).
@@ -20,11 +20,11 @@ pub fn reduce<T>(v: &Vec<T>) -> (Vec<T>, Vec<T>) where T: Copy {
     (res0, res1)
 }
 
-pub fn vector_extend<T>(v: &Vec<T>, n: usize) -> Vec<T> where T: Copy + Default {
+pub fn vector_extend<T>(v: &[T], n: usize) -> Vec<T> where T: Copy + Default {
     (0..n).map(|i| if i < v.len() { v[i] } else { T::default() }).collect::<Vec<T>>()
 }
 
-pub fn weight_vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>, weight: &Scalar) -> T
+pub fn weight_vector_mul<T>(a: &[T], b: &[Scalar], weight: &Scalar) -> T
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
@@ -39,10 +39,10 @@ pub fn weight_vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>, weight: &Scalar) -> T
         result = result.add(a_val.mul(b_val.mul(&exp)));
     });
 
-    return result;
+    result
 }
 
-pub fn vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> T
+pub fn vector_mul<T>(a: &[T], b: &[Scalar]) -> T
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
@@ -55,17 +55,17 @@ pub fn vector_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> T
         result = result.add(a_val.mul(*b_val));
     });
 
-    return result;
+    result
 }
 
-pub fn vector_mul_on_scalar<'a, T>(a: &Vec<T>, s: &'a Scalar) -> Vec<T>
+pub fn vector_mul_on_scalar<'a, T>(a: &[T], s: &'a Scalar) -> Vec<T>
     where
         T: Copy + Mul<&'a Scalar, Output=T>
 {
     a.iter().map(|x| x.mul(s)).collect::<Vec<T>>()
 }
 
-pub fn vector_add<T>(a: &Vec<T>, b: &Vec<T>) -> Vec<T>
+pub fn vector_add<T>(a: &[T], b: &[T]) -> Vec<T>
     where
         T: Copy + Default + Add<Output=T>
 {
@@ -74,7 +74,7 @@ pub fn vector_add<T>(a: &Vec<T>, b: &Vec<T>) -> Vec<T>
     a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.add(*b_val)).collect::<Vec<T>>()
 }
 
-pub fn vector_sub<'a, T>(a: &'a Vec<T>, b: &'a Vec<T>) -> Vec<T>
+pub fn vector_sub<'a, T>(a: &'a [T], b: &'a [T]) -> Vec<T>
     where
         T: Copy + Default + Sub<Output=T>
 {
@@ -94,11 +94,11 @@ pub fn e(v: &Scalar, n: usize) -> Vec<Scalar> {
 }
 
 pub fn pow(s: &Scalar, n: usize) -> Scalar {
-    return s.pow(&[n as u64]);
+    s.pow([n as u64])
 }
 
 #[allow(dead_code)]
-pub fn vector_hadamard_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> Vec<T>
+pub fn vector_hadamard_mul<T>(a: &[T], b: &[Scalar]) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T>
 {
@@ -107,11 +107,11 @@ pub fn vector_hadamard_mul<T>(a: &Vec<T>, b: &Vec<Scalar>) -> Vec<T>
     a_ext.iter().zip(b_ext).map(|(a_val, b_val)| a_val.mul(*b_val)).collect::<Vec<T>>()
 }
 
-pub fn vector_tensor_mul<'a, T>(a: &'a Vec<T>, b: &'a Vec<Scalar>) -> Vec<T>
+pub fn vector_tensor_mul<'a, T>(a: &'a [T], b: &'a [Scalar]) -> Vec<T>
     where
         T: Copy + Mul<&'a Scalar, Output=T>
 {
-    b.iter().map(|x| vector_mul_on_scalar(&a, x)).collect::<Vec<Vec<T>>>().concat()
+    b.iter().map(|x| vector_mul_on_scalar(a, x)).collect::<Vec<Vec<T>>>().concat()
 }
 
 pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
@@ -130,7 +130,7 @@ pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
     ).collect::<Vec<Vec<Scalar>>>()
 }
 
-pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
+pub fn vector_mul_on_matrix<T>(a: &[T], m: &[Vec<Scalar>]) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
@@ -141,7 +141,7 @@ pub fn vector_mul_on_matrix<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
 }
 
 #[allow(dead_code)]
-pub fn matrix_mul_on_vector<T>(a: &Vec<T>, m: &Vec<Vec<Scalar>>) -> Vec<T>
+pub fn matrix_mul_on_vector<T>(a: &[T], m: &[Vec<Scalar>]) -> Vec<T>
     where
         T: Copy + Default + Mul<Scalar, Output=T> + Add<Output=T>
 {
