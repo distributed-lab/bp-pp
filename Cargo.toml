@@ -12,10 +12,10 @@ readme = "README.md"
 
 [features]
 default = [ "serde" ]
-serde = ["dep:serde_json", "dep:serde"]
+serde = ["dep:serde_json", "dep:serde", "k256/serde"]
 
 [dependencies]
-k256 = { version = "0.13.3", features = ["serde"] }
+k256 = { version = "0.13.3" }
 sha2 = "0.10.8"
 merlin = "3.0.0"
 
