@@ -3,13 +3,15 @@
 //! Definition and implementation of the reciprocal range-proof protocol based on arithmetic circuits protocol.
 
 use std::ops::{Add, Mul};
-use k256::{AffinePoint, ProjectivePoint, Scalar};
+use k256::{ProjectivePoint, Scalar};
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
-use serde::{Deserialize, Serialize};
 use crate::util::*;
 use crate::{circuit, transcript};
 use crate::circuit::{ArithmeticCircuit, PartitionType};
+
+#[cfg(feature = "serde")]
+pub use super::serializable::SerializableProof;
 
 /// Represents reciprocal range-proof protocol witness.
 #[derive(Clone, Debug)]
@@ -29,32 +31,6 @@ pub struct Witness {
 pub struct Proof {
     pub circuit_proof: circuit::Proof,
     pub r: ProjectivePoint,
-}
-
-/// Represent serializable version of reciprocal proof (uses AffinePoint instead of ProjectivePoint
-/// and serialized version of circuit proof).
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SerializableProof {
-    pub circuit_proof: circuit::SerializableProof,
-    pub r: AffinePoint,
-}
-
-impl From<&SerializableProof> for Proof {
-    fn from(value: &SerializableProof) -> Self {
-        Proof {
-            circuit_proof: circuit::Proof::from(&value.circuit_proof),
-            r: ProjectivePoint::from(value.r),
-        }
-    }
-}
-
-impl From<&Proof> for SerializableProof {
-    fn from(value: &Proof) -> Self {
-        SerializableProof {
-            circuit_proof: circuit::SerializableProof::from(&value.circuit_proof),
-            r: value.r.to_affine(),
-        }
-    }
 }
 
 /// Represents public reciprocal range proof protocol information. Using this information and challenge

@@ -2,13 +2,19 @@
 //! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
 
 use std::ops::{Add, Mul, Sub};
-use k256::{AffinePoint, ProjectivePoint, Scalar};
+use k256::{ProjectivePoint, Scalar};
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
-use serde::{Deserialize, Serialize};
+
 use crate::util::*;
 use crate::{transcript, wnla};
 use crate::wnla::WeightNormLinearArgument;
+
+#[cfg(feature = "serde")]
+mod serializable;
+
+#[cfg(feature = "serde")]
+pub use serializable::SerializableProof;
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum PartitionType {
@@ -29,49 +35,6 @@ pub struct Proof {
     pub x: Vec<ProjectivePoint>,
     pub l: Vec<Scalar>,
     pub n: Vec<Scalar>,
-}
-
-/// Represent serializable version of arithmetic circuit proof (uses AffinePoint instead of ProjectivePoint).
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SerializableProof {
-    pub c_l: AffinePoint,
-    pub c_r: AffinePoint,
-    pub c_o: AffinePoint,
-    pub c_s: AffinePoint,
-    pub r: Vec<AffinePoint>,
-    pub x: Vec<AffinePoint>,
-    pub l: Vec<Scalar>,
-    pub n: Vec<Scalar>,
-}
-
-impl From<&SerializableProof> for Proof {
-    fn from(value: &SerializableProof) -> Self {
-        return Proof {
-            c_l: ProjectivePoint::from(&value.c_l),
-            c_r: ProjectivePoint::from(&value.c_r),
-            c_o: ProjectivePoint::from(&value.c_o),
-            c_s: ProjectivePoint::from(&value.c_s),
-            r: value.r.iter().map(ProjectivePoint::from).collect::<Vec<ProjectivePoint>>(),
-            x: value.x.iter().map(ProjectivePoint::from).collect::<Vec<ProjectivePoint>>(),
-            l: value.l.clone(),
-            n: value.n.clone(),
-        };
-    }
-}
-
-impl From<&Proof> for SerializableProof {
-    fn from(value: &Proof) -> Self {
-        return SerializableProof {
-            c_l: value.c_l.to_affine(),
-            c_r: value.c_r.to_affine(),
-            c_o: value.c_o.to_affine(),
-            c_s: value.c_s.to_affine(),
-            r: value.r.iter().map(|r_val| r_val.to_affine()).collect::<Vec<AffinePoint>>(),
-            x: value.x.iter().map(|x_val| x_val.to_affine()).collect::<Vec<AffinePoint>>(),
-            l: value.l.clone(),
-            n: value.n.clone(),
-        };
-    }
 }
 
 /// Represents arithmetic circuit witness.

@@ -10,11 +10,14 @@ categories = ["cryptography"]
 keywords = ["crypto", "bulletproofs", "rangeproofs", "zeroknowledge", "zkp"]
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = [ "serde" ]
+serde = ["dep:serde_json", "dep:serde", "k256/serde"]
 
 [dependencies]
-k256 = { version = "0.13.3", features = ["serde"]}
+k256 = { version = "0.13.3" }
 sha2 = "0.10.8"
 merlin = "3.0.0"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+
+serde = { version = "1.0.197", features = ["derive"], optional = true }
+serde_json = { version = "1.0.114", optional = true }
