@@ -1,4 +1,4 @@
-///! Definition and implementation of the Bulletproofs++ weight norm linear argument protocol.
+//! Definition and implementation of the Bulletproofs++ weight norm linear argument protocol.
 use std::ops::{Add, Mul};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
 use merlin::Transcript;
@@ -40,8 +40,8 @@ pub struct SerializableProof {
 impl From<&SerializableProof> for Proof {
     fn from(value: &SerializableProof) -> Self {
         return Proof {
-            r: value.r.iter().map(|r_val| ProjectivePoint::from(r_val)).collect::<Vec<ProjectivePoint>>(),
-            x: value.x.iter().map(|x_val| ProjectivePoint::from(x_val)).collect::<Vec<ProjectivePoint>>(),
+            r: value.r.iter().map(ProjectivePoint::from).collect::<Vec<ProjectivePoint>>(),
+            x: value.x.iter().map(ProjectivePoint::from).collect::<Vec<ProjectivePoint>>(),
             l: value.l.clone(),
             n: value.n.clone(),
         };
@@ -62,7 +62,7 @@ impl From<&Proof> for SerializableProof {
 impl WeightNormLinearArgument {
     /// Creates weight norm linear argument commitment to vectors `l`, `n`:
     /// `C = v*g + <h_vec, l> + <g_vec, n>`, where `v = |n|_{mu}^2 + <c, l>`
-    pub fn commit(&self, l: &Vec<Scalar>, n: &Vec<Scalar>) -> ProjectivePoint {
+    pub fn commit(&self, l: &[Scalar], n: &[Scalar]) -> ProjectivePoint {
         let v = vector_mul(&self.c, l).add(weight_vector_mul(n, n, &self.mu));
         self.
             g.mul(v).
@@ -76,7 +76,7 @@ impl WeightNormLinearArgument {
             return false;
         }
 
-        if proof.x.len() == 0 {
+        if proof.x.is_empty() {
             return commitment.eq(&self.commit(&proof.l, &proof.n));
         }
 
@@ -85,8 +85,8 @@ impl WeightNormLinearArgument {
         let (h0, h1) = reduce(&self.h_vec);
 
         transcript::app_point(b"wnla_com", commitment, t);
-        transcript::app_point(b"wnla_x", &proof.x.last().unwrap(), t);
-        transcript::app_point(b"wnla_r", &proof.r.last().unwrap(), t);
+        transcript::app_point(b"wnla_x", proof.x.last().unwrap(), t);
+        transcript::app_point(b"wnla_r", proof.r.last().unwrap(), t);
         t.append_u64(b"l.sz", self.h_vec.len() as u64);
         t.append_u64(b"n.sz", self.g_vec.len() as u64);
 
@@ -116,7 +116,7 @@ impl WeightNormLinearArgument {
             n: proof.n,
         };
 
-        return wnla.verify(&com_, t, proof_);
+        wnla.verify(&com_, t, proof_)
     }
 
     /// Creates weight norm linear argument proof. `commitment` argument should be a weight norm

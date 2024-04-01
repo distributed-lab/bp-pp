@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-///! Definition and implementation of the reciprocal range-proof protocol based on arithmetic circuits protocol.
+//! Definition and implementation of the reciprocal range-proof protocol based on arithmetic circuits protocol.
 
 use std::ops::{Add, Mul};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
@@ -41,19 +41,19 @@ pub struct SerializableProof {
 
 impl From<&SerializableProof> for Proof {
     fn from(value: &SerializableProof) -> Self {
-        return Proof {
+        Proof {
             circuit_proof: circuit::Proof::from(&value.circuit_proof),
             r: ProjectivePoint::from(value.r),
-        };
+        }
     }
 }
 
 impl From<&Proof> for SerializableProof {
     fn from(value: &Proof) -> Self {
-        return SerializableProof {
+        SerializableProof {
             circuit_proof: circuit::SerializableProof::from(&value.circuit_proof),
             r: value.r.to_affine(),
-        };
+        }
     }
 }
 
@@ -89,8 +89,8 @@ impl ReciprocalRangeProofProtocol {
     }
 
     /// Creates commitment for the reciprocals and blinding: `commitment = s*h_vec[0] + <r, h_vec[9:]>`
-    pub fn commit_poles(&self, r: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
-        self.h_vec[0].mul(s).add(&vector_mul(&self.h_vec[9..].to_vec(), &r))
+    pub fn commit_poles(&self, r: &[Scalar], s: &Scalar) -> ProjectivePoint {
+        self.h_vec[0].mul(s).add(&vector_mul(&self.h_vec[9..], r))
     }
 
     /// Verifies zk-proof that committed value lies in [0..dim_np^dim_nd) range.
@@ -102,7 +102,7 @@ impl ReciprocalRangeProofProtocol {
 
         let circuit_commitment = commitment.add(&proof.r);
 
-        return circuit.verify(&vec![circuit_commitment], t, proof.circuit_proof);
+        circuit.verify(&[circuit_commitment], t, proof.circuit_proof)
     }
 
     /// Creates zk-proof that committed value lies in [0..dim_np^dim_nd) range.
@@ -138,14 +138,14 @@ impl ReciprocalRangeProofProtocol {
         };
 
         let circuit_commitment = circuit.commit(&circuit_witness.v[0], &circuit_witness.s_v[0]);
-        return Proof {
-            circuit_proof: circuit.prove::<R>(&vec![circuit_commitment], circuit_witness, t, rng),
+        Proof {
+            circuit_proof: circuit.prove::<R>(&[circuit_commitment], circuit_witness, t, rng),
             r: r_com,
-        };
+        }
     }
 
     /// Creates circuit parameters based on provided challenge. For the same challenge will generate same parameters.
-    fn make_circuit<'a>(&'a self, e: Scalar) -> ArithmeticCircuit<impl Fn(PartitionType, usize) -> Option<usize> + 'a>
+    fn make_circuit(&self, e: Scalar) -> ArithmeticCircuit<impl Fn(PartitionType, usize) -> Option<usize> + '_>
     {
         let dim_nm = self.dim_nd;
         let dim_no = self.dim_np;
@@ -196,7 +196,7 @@ impl ReciprocalRangeProofProtocol {
             dim_nl,
             dim_nv,
             dim_nw,
-            g: self.g.clone(),
+            g: self.g,
             g_vec: self.g_vec.clone(),
             h_vec: self.h_vec.clone(),
             W_m,
