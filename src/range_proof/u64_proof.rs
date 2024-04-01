@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-///! Definition and implementation of the u64 range-proof protocol based on reciprocal protocol.
+//! Definition and implementation of the u64 range-proof protocol based on reciprocal protocol.
 
 use std::ops::{Add, Mul};
 use k256::{ProjectivePoint, Scalar};
@@ -73,7 +73,7 @@ impl U64RangeProofProtocol {
 
         let witness = Witness {
             x: Scalar::from(x),
-            s: s.clone(),
+            s: *s,
             m: poles,
             digits,
         };
@@ -84,7 +84,7 @@ impl U64RangeProofProtocol {
     pub fn u64_to_hex(mut x: u64) -> Vec<Scalar> {
         (0..16).map(|_| {
             let val = Scalar::from(x % 16);
-            x = x / 16;
+            x /= 16;
             val
         }).collect::<Vec<Scalar>>()
     }
@@ -95,7 +95,7 @@ impl U64RangeProofProtocol {
         (0..16).for_each(|_| {
             let digit = (x % 16) as usize;
             result[digit] = result[digit].add(Scalar::ONE);
-            x = x / 16;
+            x /= 16;
         });
 
         result

@@ -33,7 +33,15 @@ and `Deserialize` was implemented.
 Use [tests](./src/tests.rs) to run the provided example:
 
 ```rust
-pub fn main() {
+use k256::elliptic_curve::{Group, rand_core::OsRng};
+use k256::ProjectivePoint;
+
+use bp_pp::range_proof;
+use bp_pp::range_proof::u64_proof::G_VEC_FULL_SZ;
+use bp_pp::range_proof::u64_proof::H_VEC_FULL_SZ;
+use bp_pp::range_proof::reciprocal::{SerializableProof, self};
+
+fn main() {
     let mut rand = OsRng::default();
 
     let x = 123456u64; // private value to create proof for.

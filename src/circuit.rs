@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-///! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
+//! Definition and implementation of the Bulletproofs++ arithmetic circuit protocol.
 
 use std::ops::{Add, Mul, Sub};
 use k256::{ProjectivePoint, Scalar};
@@ -105,15 +105,15 @@ impl<P> ArithmeticCircuit<P>
         P: Fn(PartitionType, usize) -> Option<usize>
 {
     /// Creates commitment to the arithmetic circuit witness.
-    pub fn commit(&self, v: &Vec<Scalar>, s: &Scalar) -> ProjectivePoint {
+    pub fn commit(&self, v: &[Scalar], s: &Scalar) -> ProjectivePoint {
         self.
             g.mul(&v[0]).
             add(&self.h_vec[0].mul(s)).
-            add(&vector_mul(&self.h_vec[9..].to_vec(), &v[1..].to_vec()))
+            add(&vector_mul(&self.h_vec[9..], &v[1..]))
     }
 
     /// Verifies arithmetic circuit proof with respect to the `v` commitments vector.
-    pub fn verify(&self, v: &Vec<ProjectivePoint>, t: &mut Transcript, proof: Proof) -> bool {
+    pub fn verify(&self, v: &[ProjectivePoint], t: &mut Transcript, proof: Proof) -> bool {
         transcript::app_point(b"commitment_cl", &proof.c_l, t);
         transcript::app_point(b"commitment_cr", &proof.c_r, t);
         transcript::app_point(b"commitment_co", &proof.c_o, t);
@@ -185,7 +185,7 @@ impl<P> ArithmeticCircuit<P>
         cl_tau = vector_mul_on_scalar(&cl_tau, &Scalar::from(2u32));
         cl_tau = vector_sub(&cl_tau, &c_l0);
 
-        let mut c = Vec::from([&cr_tau[..], &cl_tau[..]].concat());
+        let mut c = [&cr_tau[..], &cl_tau[..]].concat();
 
         let commitment = pt.
             add(&proof.c_s.mul(&tau_inv)).
@@ -199,25 +199,25 @@ impl<P> ArithmeticCircuit<P>
         }
 
         let wnla = WeightNormLinearArgument {
-            g: ProjectivePoint::from(self.g),
-            g_vec: Vec::from([&self.g_vec[..], &self.g_vec_[..]].concat()),
-            h_vec: Vec::from([&self.h_vec[..], &self.h_vec_[..]].concat()),
+            g: self.g,
+            g_vec: [&self.g_vec[..], &self.g_vec_[..]].concat(),
+            h_vec: [&self.h_vec[..], &self.h_vec_[..]].concat(),
             c,
             rho,
             mu,
         };
 
-        return wnla.verify(&commitment, t, wnla::Proof {
+        wnla.verify(&commitment, t, wnla::Proof {
             r: proof.r,
             x: proof.x,
             l: proof.l,
             n: proof.n,
-        });
+        })
     }
 
     /// Creates arithmetic circuit proof for the corresponding witness. Also, `v` commitments vector
     /// should correspond input witness in `witness` argument.
-    pub fn prove<R>(&self, v: &Vec<ProjectivePoint>, witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
+    pub fn prove<R>(&self, v: &[ProjectivePoint], witness: Witness, t: &mut Transcript, rng: &mut R) -> Proof
         where
             R: RngCore + CryptoRng
     {
@@ -262,7 +262,7 @@ impl<P> ArithmeticCircuit<P>
 
         let no = (0..self.dim_nm).map(|j|
             if let Some(i) = (self.partition)(PartitionType::NO, j) {
-                Scalar::from(witness.w_o[i])
+                witness.w_o[i]
             } else {
                 Scalar::ZERO
             }
@@ -270,7 +270,7 @@ impl<P> ArithmeticCircuit<P>
 
         let lo = (0..self.dim_nv).map(|j|
             if let Some(i) = (self.partition)(PartitionType::LO, j) {
-                Scalar::from(witness.w_o[i])
+                witness.w_o[i]
             } else {
                 Scalar::ZERO
             }
@@ -278,7 +278,7 @@ impl<P> ArithmeticCircuit<P>
 
         let ll = (0..self.dim_nv).map(|j|
             if let Some(i) = (self.partition)(PartitionType::LL, j) {
-                Scalar::from(witness.w_o[i])
+                witness.w_o[i]
             } else {
                 Scalar::ZERO
             }
@@ -286,22 +286,22 @@ impl<P> ArithmeticCircuit<P>
 
         let lr = (0..self.dim_nv).map(|j|
             if let Some(i) = (self.partition)(PartitionType::LR, j) {
-                Scalar::from(witness.w_o[i])
+                witness.w_o[i]
             } else {
                 Scalar::ZERO
             }
         ).collect::<Vec<Scalar>>();
 
         let co =
-            vector_mul(&self.h_vec, &Vec::from([&ro[..], &lo[..]].concat())).
+            vector_mul(&self.h_vec, &[&ro[..], &lo[..]].concat()).
                 add(vector_mul(&self.g_vec, &no));
 
         let cl =
-            vector_mul(&self.h_vec, &Vec::from([&rl[..], &ll[..]].concat())).
+            vector_mul(&self.h_vec, &[&rl[..], &ll[..]].concat()).
                 add(vector_mul(&self.g_vec, &nl));
 
         let cr =
-            vector_mul(&self.h_vec, &Vec::from([&rr[..], &lr[..]].concat())).
+            vector_mul(&self.h_vec, &[&rr[..], &lr[..]].concat()).
                 add(vector_mul(&self.g_vec, &nr));
 
         transcript::app_point(b"commitment_cl", &cl, t);
@@ -328,8 +328,8 @@ impl<P> ArithmeticCircuit<P>
             c_lO
         ) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
-        let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect();
-        let ns = (0..self.dim_nm).map(|_| Scalar::generate_biased(rng)).collect();
+        let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect::<Vec<Scalar>>();
+        let ns = (0..self.dim_nm).map(|_| Scalar::generate_biased(rng)).collect::<Vec<Scalar>>();
 
         let mut v_0 = Scalar::ZERO;
         (0..self.k).
@@ -348,7 +348,7 @@ impl<P> ArithmeticCircuit<P>
         let mut v_1 = vec![Scalar::ZERO; self.dim_nv - 1];
         (0..self.k).
             for_each(|i|
-                v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..].to_vec(), &self.linear_comb_coef(i, &lambda, &mu)))
+                v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..], &self.linear_comb_coef(i, &lambda, &mu)))
             );
         v_1 = vector_mul_on_scalar(&v_1, &Scalar::from(2u32));
 
@@ -424,7 +424,7 @@ impl<P> ArithmeticCircuit<P>
             f_[7].mul(&beta_inv).add(&ro[7].mul(&delta)).sub(&rl[6]).add(&rr[5]),
         ];
 
-        let cs = vector_mul(&self.h_vec, &Vec::from([&rs[..], &ls[..]].concat())).
+        let cs = vector_mul(&self.h_vec, &[&rs[..], &ls[..]].concat()).
             add(vector_mul(&self.g_vec, &ns));
 
         transcript::app_point(b"commitment_cs", &cs, t);
@@ -434,11 +434,11 @@ impl<P> ArithmeticCircuit<P>
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
 
-        let mut l = vector_mul_on_scalar(&Vec::from([&rs[..], &ls[..]].concat()), &tau_inv);
-        l = vector_sub(&l, &vector_mul_on_scalar(&Vec::from([&ro[..], &lo[..]].concat()), &delta));
-        l = vector_add(&l, &vector_mul_on_scalar(&Vec::from([&rl[..], &ll[..]].concat()), &tau));
-        l = vector_sub(&l, &vector_mul_on_scalar(&Vec::from([&rr[..], &lr[..]].concat()), &tau2));
-        l = vector_add(&l, &vector_mul_on_scalar(&Vec::from([&rv[..], &v_1[..]].concat()), &tau3));
+        let mut l = vector_mul_on_scalar(&[&rs[..], &ls[..]].concat(), &tau_inv);
+        l = vector_sub(&l, &vector_mul_on_scalar(&[&ro[..], &lo[..]].concat(), &delta));
+        l = vector_add(&l, &vector_mul_on_scalar(&[&rl[..], &ll[..]].concat(), &tau));
+        l = vector_sub(&l, &vector_mul_on_scalar(&[&rr[..], &lr[..]].concat(), &tau2));
+        l = vector_add(&l, &vector_mul_on_scalar(&[&rv[..], &v_1[..]].concat(), &tau3));
 
         let mut pn_tau = vector_mul_on_scalar(&c_nO, &tau3.mul(&delta_inv));
         pn_tau = vector_sub(&pn_tau, &vector_mul_on_scalar(&c_nL, &tau2));
@@ -473,7 +473,7 @@ impl<P> ArithmeticCircuit<P>
         cl_tau = vector_mul_on_scalar(&cl_tau, &Scalar::from(2u32));
         cl_tau = vector_sub(&cl_tau, &c_l0);
 
-        let mut c = Vec::from([&cr_tau[..], &cl_tau[..]].concat());
+        let mut c = [&cr_tau[..], &cl_tau[..]].concat();
 
         let v = ps_tau.add(&tau3.mul(&v_0));
 
@@ -491,9 +491,9 @@ impl<P> ArithmeticCircuit<P>
         }
 
         let wnla = WeightNormLinearArgument {
-            g: ProjectivePoint::from(self.g),
-            g_vec: Vec::from([&self.g_vec[..], &self.g_vec_[..]].concat()),
-            h_vec: Vec::from([&self.h_vec[..], &self.h_vec_[..]].concat()),
+            g: self.g,
+            g_vec: [&self.g_vec[..], &self.g_vec_[..]].concat(),
+            h_vec: [&self.h_vec[..], &self.h_vec_[..]].concat(),
             c,
             rho,
             mu,
@@ -501,7 +501,7 @@ impl<P> ArithmeticCircuit<P>
 
         let proof_wnla = wnla.prove(&commitment, t, l, n);
 
-        return Proof {
+        Proof {
             c_l: cl,
             c_r: cr,
             c_o: co,
@@ -510,18 +510,18 @@ impl<P> ArithmeticCircuit<P>
             x: proof_wnla.x,
             l: proof_wnla.l,
             n: proof_wnla.n,
-        };
+        }
     }
 
 
     fn linear_comb_coef(&self, i: usize, lambda: &Scalar, mu: &Scalar) -> Scalar {
         let mut coef = Scalar::ZERO;
         if self.f_l {
-            coef = coef.add(pow(&lambda, self.dim_nv * i))
+            coef = coef.add(pow(lambda, self.dim_nv * i))
         }
 
         if self.f_m {
-            coef = coef.add(pow(&mu, self.dim_nv * i + 1))
+            coef = coef.add(pow(mu, self.dim_nv * i + 1))
         }
 
         coef
@@ -530,30 +530,30 @@ impl<P> ArithmeticCircuit<P>
     fn collect_cl0(&self, lambda: &Scalar, mu: &Scalar) -> Vec<Scalar> {
         let mut c_l0 = vec![Scalar::ZERO; self.dim_nv - 1];
         if self.f_l {
-            c_l0 = e(&lambda, self.dim_nv)[1..].to_vec();
+            c_l0 = e(lambda, self.dim_nv)[1..].to_vec();
         }
         if self.f_m {
-            c_l0 = vector_sub(&c_l0, &vector_mul_on_scalar(&e(&mu, self.dim_nv)[1..].to_vec(), &mu));
+            c_l0 = vector_sub(&c_l0, &vector_mul_on_scalar(&e(mu, self.dim_nv)[1..], mu));
         }
 
         c_l0
     }
 
-    fn collect_c(&self, lambda_vec: &Vec<Scalar>, mu_vec: &Vec<Scalar>, mu: &Scalar) -> (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>) {
+    fn collect_c(&self, lambda_vec: &[Scalar], mu_vec: &[Scalar], mu: &Scalar) -> (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>, Vec<Scalar>) {
         let (M_lnL, M_mnL, M_lnR, M_mnR) = self.collect_m_rl();
         let (M_lnO, M_mnO, M_llL, M_mlL, M_llR, M_mlR, M_llO, M_mlO) = self.collect_m_o();
 
-        let mu_diag_inv = diag_inv(&mu, self.dim_nm);
+        let mu_diag_inv = diag_inv(mu, self.dim_nm);
 
-        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnL), &vector_mul_on_matrix(&mu_vec, &M_mnL)), &mu_diag_inv);
-        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnR), &vector_mul_on_matrix(&mu_vec, &M_mnR)), &mu_diag_inv);
-        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_lnO), &vector_mul_on_matrix(&mu_vec, &M_mnO)), &mu_diag_inv);
+        let c_nL = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(lambda_vec, &M_lnL), &vector_mul_on_matrix(mu_vec, &M_mnL)), &mu_diag_inv);
+        let c_nR = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(lambda_vec, &M_lnR), &vector_mul_on_matrix(mu_vec, &M_mnR)), &mu_diag_inv);
+        let c_nO = vector_mul_on_matrix(&vector_sub(&vector_mul_on_matrix(lambda_vec, &M_lnO), &vector_mul_on_matrix(mu_vec, &M_mnO)), &mu_diag_inv);
 
-        let c_lL = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llL), &vector_mul_on_matrix(&mu_vec, &M_mlL));
-        let c_lR = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llR), &vector_mul_on_matrix(&mu_vec, &M_mlR));
-        let c_lO = vector_sub(&vector_mul_on_matrix(&lambda_vec, &M_llO), &vector_mul_on_matrix(&mu_vec, &M_mlO));
+        let c_lL = vector_sub(&vector_mul_on_matrix(lambda_vec, &M_llL), &vector_mul_on_matrix(mu_vec, &M_mlL));
+        let c_lR = vector_sub(&vector_mul_on_matrix(lambda_vec, &M_llR), &vector_mul_on_matrix(mu_vec, &M_mlR));
+        let c_lO = vector_sub(&vector_mul_on_matrix(lambda_vec, &M_llO), &vector_mul_on_matrix(mu_vec, &M_mlO));
 
-        return (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO);
+        (c_nL, c_nR, c_nO, c_lL, c_lR, c_lO)
     }
 
     fn collect_lambda(&self, lambda: &Scalar, mu: &Scalar) -> Vec<Scalar> {
@@ -568,7 +568,7 @@ impl<P> ArithmeticCircuit<P>
             );
         }
 
-        return lambda_vec;
+        lambda_vec
     }
 
     fn collect_m_rl(&self) -> (Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>) {
@@ -576,7 +576,7 @@ impl<P> ArithmeticCircuit<P>
         let M_mnL = (0..self.dim_nm).map(|i| Vec::from(&self.W_m[i][..self.dim_nm])).collect::<Vec<Vec<Scalar>>>();
         let M_lnR = (0..self.dim_nl).map(|i| Vec::from(&self.W_l[i][self.dim_nm..self.dim_nm * 2])).collect::<Vec<Vec<Scalar>>>();
         let M_mnR = (0..self.dim_nm).map(|i| Vec::from(&self.W_m[i][self.dim_nm..self.dim_nm * 2])).collect::<Vec<Vec<Scalar>>>();
-        return (M_lnL, M_mnL, M_lnR, M_mnR);
+        (M_lnL, M_mnL, M_lnR, M_mnR)
     }
 
     fn collect_m_o(&self) -> (Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>, Vec<Vec<Scalar>>) {
@@ -587,7 +587,7 @@ impl<P> ArithmeticCircuit<P>
             (0..isz).map(|i|
                 (0..jsz).map(|j|
                     if let Some(j_) = (self.partition)(typ, j) {
-                        Scalar::from(W_x[i][j_])
+                       W_x[i][j_]
                     } else {
                         Scalar::ZERO
                     }
