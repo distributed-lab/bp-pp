@@ -1,0 +1,19 @@
+
+running 3 tests
+test tests::ac_works ... ignored
+test tests::u64_proof_works ... ignored
+test tests::wnla_works ... ignored
+
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+prove                   time:   [17.483 ms 17.568 ms 17.663 ms]
+                        change: [+0.3062% +0.9068% +1.5902%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+
+verify                  time:   [5.7575 ms 5.7969 ms 5.8373 ms]
+                        change: [+0.3293% +1.1936% +2.1047%] (p = 0.01 < 0.05)
+                        Change within noise threshold.
+
