@@ -10,7 +10,7 @@ use crate::range_proof::reciprocal::{Proof, ReciprocalRangeProofProtocol, Witnes
 #[allow(dead_code)]
 const G_VEC_CIRCUIT_SZ: usize = 16;
 pub const G_VEC_FULL_SZ: usize = 16;
-const H_VEC_CIRCUIT_SZ: usize = 26;
+pub const H_VEC_CIRCUIT_SZ: usize = 26;
 pub const H_VEC_FULL_SZ: usize = 32;
 
 
@@ -29,9 +29,9 @@ pub struct U64RangeProofProtocol {
 
 impl U64RangeProofProtocol {
     /// Count of digits of u64 in hex representation.
-    const DIM_ND: usize = 16;
+    pub const DIM_ND: usize = 16;
     /// Base (hex)
-    const DIM_NP: usize = 16;
+    pub const DIM_NP: usize = 16;
 
     /// Creates commitment for the private value and blinding: `commitment = x*g + s*h_vec[0]`
     pub fn commit_value(&self, x: u64, s: &Scalar) -> ProjectivePoint {

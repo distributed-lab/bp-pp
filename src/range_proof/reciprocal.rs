@@ -145,7 +145,8 @@ impl ReciprocalRangeProofProtocol {
     }
 
     /// Creates circuit parameters based on provided challenge. For the same challenge will generate same parameters.
-    fn make_circuit(&self, e: Scalar) -> ArithmeticCircuit<impl Fn(PartitionType, usize) -> Option<usize> + '_>
+    #[inline(always)]
+    pub fn make_circuit(&self, e: Scalar) -> ArithmeticCircuit<impl Fn(PartitionType, usize) -> Option<usize> + '_>
     {
         let dim_nm = self.dim_nd;
         let dim_no = self.dim_np;
