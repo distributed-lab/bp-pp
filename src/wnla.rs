@@ -1,6 +1,7 @@
 //! Definition and implementation of the Bulletproofs++ weight norm linear argument protocol.
 use std::ops::{Add, Mul};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
+use k256::elliptic_curve::ops::Invert;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 use crate::transcript;
@@ -131,7 +132,7 @@ impl WeightNormLinearArgument {
             };
         }
 
-        let rho_inv = self.rho.invert().unwrap();
+        let rho_inv = self.rho.invert_vartime().unwrap();
 
         let (c0, c1) = reduce(&self.c);
         let (l0, l1) = reduce(&l);

@@ -4,6 +4,7 @@
 
 use std::ops::{Add, Mul};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
+use k256::elliptic_curve::ops::Invert;
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
@@ -177,7 +178,7 @@ impl ReciprocalRangeProofProtocol {
 
         (0..dim_nm).for_each(|i|
             (0..dim_no).for_each(|j|
-                W_l[i + 1][j + 2 * dim_nm] = minus(&(e.add(Scalar::from(j as u32)).invert().unwrap()))
+                W_l[i + 1][j + 2 * dim_nm] = minus(&(e.add(Scalar::from(j as u32)).invert_vartime().unwrap()))
             )
         );
 

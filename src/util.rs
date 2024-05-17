@@ -1,6 +1,7 @@
 use std::cmp::max;
 use std::ops::{Add, Mul, Sub};
 use k256::elliptic_curve::Field;
+use k256::elliptic_curve::ops::Invert;
 use k256::Scalar;
 
 pub fn reduce<T>(v: &[T]) -> (Vec<T>, Vec<T>) where T: Copy {
@@ -115,7 +116,7 @@ pub fn vector_tensor_mul<'a, T>(a: &'a [T], b: &'a [Scalar]) -> Vec<T>
 }
 
 pub fn diag_inv(x: &Scalar, n: usize) -> Vec<Vec<Scalar>> {
-    let x_inv = x.invert().unwrap();
+    let x_inv = x.invert_vartime().unwrap();
     let mut val = Scalar::ONE;
 
     (0..n).map(|i|

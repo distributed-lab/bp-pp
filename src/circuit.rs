@@ -3,6 +3,7 @@
 
 use std::ops::{Add, Mul, Sub};
 use k256::{AffinePoint, ProjectivePoint, Scalar};
+use k256::elliptic_curve::ops::Invert;
 use k256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
@@ -186,11 +187,11 @@ impl<P> ArithmeticCircuit<P>
         transcript::app_point(b"commitment_cs", &proof.c_s, t);
 
         let tau = transcript::get_challenge(b"circuit_tau", t);
-        let tau_inv = tau.invert().unwrap();
+        let tau_inv = tau.invert_vartime().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
 
-        let delta_inv = delta.invert().unwrap();
+        let delta_inv = delta.invert_vartime().unwrap();
 
         let mut pn_tau = vector_mul_on_scalar(&c_nO, &tau3.mul(&delta_inv));
         pn_tau = vector_sub(&pn_tau, &vector_mul_on_scalar(&c_nL, &tau2));
@@ -395,7 +396,7 @@ impl<P> ArithmeticCircuit<P>
         let mut f_ = vec![Scalar::ZERO; 8];
 
         let delta2 = delta.mul(&delta);
-        let delta_inv = delta.invert().unwrap();
+        let delta_inv = delta.invert_vartime().unwrap();
 
         // -2
         f_[0] = minus(&weight_vector_mul(&ns, &ns, &mu));
@@ -447,7 +448,7 @@ impl<P> ArithmeticCircuit<P>
         // 6
         f_[7] = minus(&vector_mul(&c_lO, &v_1).mul(&delta_inv).mul(&Scalar::from(2u32)));
 
-        let beta_inv = beta.invert().unwrap();
+        let beta_inv = beta.invert_vartime().unwrap();
 
         let rs = vec![
             f_[1].add(ro[1].mul(&delta).mul(&beta)),
@@ -467,7 +468,7 @@ impl<P> ArithmeticCircuit<P>
         transcript::app_point(b"commitment_cs", &cs, t);
 
         let tau = transcript::get_challenge(b"circuit_tau", t);
-        let tau_inv = tau.invert().unwrap();
+        let tau_inv = tau.invert_vartime().unwrap();
         let tau2 = tau.mul(&tau);
         let tau3 = tau2.mul(&tau);
 
