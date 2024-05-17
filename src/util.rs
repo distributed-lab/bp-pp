@@ -95,7 +95,7 @@ pub fn e(v: &Scalar, n: usize) -> Vec<Scalar> {
 }
 
 pub fn pow(s: &Scalar, n: usize) -> Scalar {
-    s.pow([n as u64])
+    s.pow_vartime([n as u64])
 }
 
 #[allow(dead_code)]

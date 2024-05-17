@@ -6,17 +6,16 @@ test tests::wnla_works ... ignored
 
 test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-prove                   time:   [14.589 ms 14.643 ms 14.712 ms]
-                        change: [-2.0559% -1.2499% -0.5348%] (p = 0.00 < 0.05)
-                        Change within noise threshold.
-Found 8 outliers among 100 measurements (8.00%)
-  3 (3.00%) high mild
-  5 (5.00%) high severe
-
-verify                  time:   [3.7790 ms 3.7809 ms 3.7831 ms]
-                        change: [-1.5729% -1.5166% -1.4506%] (p = 0.00 < 0.05)
+prove                   time:   [14.487 ms 14.536 ms 14.591 ms]
+                        change: [-3.2950% -2.4772% -1.6821%] (p = 0.00 < 0.05)
                         Performance has improved.
-Found 10 outliers among 100 measurements (10.00%)
-  6 (6.00%) high mild
-  4 (4.00%) high severe
+Found 24 outliers among 100 measurements (24.00%)
+  3 (3.00%) high mild
+  21 (21.00%) high severe
+
+verify                  time:   [3.7527 ms 3.8162 ms 3.9098 ms]
+                        change: [-2.8445% -1.1115% +1.8305%] (p = 0.37 > 0.05)
+                        No change in performance detected.
+Found 21 outliers among 100 measurements (21.00%)
+  21 (21.00%) high severe
 
