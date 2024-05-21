@@ -6,6 +6,8 @@
 <img src="https://img.shields.io/github/stars/distributed-lab/bp-pp?style=social"/>
 </a>
 
+⚠️ __Please note - this crypto library has not been audited, so use it at your own risk.__
+
 ## Abstract
 
 Present Rust library contains the implementation of Bulletproofs++
