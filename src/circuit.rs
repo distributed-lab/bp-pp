@@ -177,12 +177,14 @@ impl<P> ArithmeticCircuit<P>
             c_lO
         ) = self.collect_c(&lambda_vec, &mu_vec, &mu);
 
+        let two = Scalar::from(2u32);
+
         let mut v_ = ProjectivePoint::IDENTITY;
         (0..self.k).
             for_each(|i|
                 v_ = v_.add(v[i].mul(self.linear_comb_coef(i, &lambda, &mu)))
             );
-        v_ = v_.mul(Scalar::from(2u32));
+        v_ = v_.mul(&two);
 
         transcript::app_point(b"commitment_cs", &proof.c_s, t);
 
@@ -198,8 +200,8 @@ impl<P> ArithmeticCircuit<P>
         pn_tau = vector_add(&pn_tau, &vector_mul_on_scalar(&c_nR, &tau));
 
         let ps_tau = weight_vector_mul(&pn_tau, &pn_tau, &mu).
-            add(&vector_mul(&lambda_vec, &self.a_l).mul(&tau3).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&mu_vec, &self.a_m).mul(&tau3).mul(&Scalar::from(2u32)));
+            add(&vector_mul(&lambda_vec, &self.a_l).mul(&tau3).mul(&two)).
+            sub(&vector_mul(&mu_vec, &self.a_m).mul(&tau3).mul(&two));
 
         let pt = self.g.mul(ps_tau).add(vector_mul(&self.g_vec, &pn_tau));
 
@@ -220,7 +222,7 @@ impl<P> ArithmeticCircuit<P>
         let mut cl_tau = vector_mul_on_scalar(&c_lO, &tau3.mul(&delta_inv));
         cl_tau = vector_sub(&cl_tau, &vector_mul_on_scalar(&c_lL, &tau2));
         cl_tau = vector_add(&cl_tau, &vector_mul_on_scalar(&c_lR, &tau));
-        cl_tau = vector_mul_on_scalar(&cl_tau, &Scalar::from(2u32));
+        cl_tau = vector_mul_on_scalar(&cl_tau, &two);
         cl_tau = vector_sub(&cl_tau, &c_l0);
 
         let mut c = [&cr_tau[..], &cl_tau[..]].concat();
@@ -369,26 +371,28 @@ impl<P> ArithmeticCircuit<P>
         let ls = (0..self.dim_nv).map(|_| Scalar::generate_biased(rng)).collect::<Vec<Scalar>>();
         let ns = (0..self.dim_nm).map(|_| Scalar::generate_biased(rng)).collect::<Vec<Scalar>>();
 
+        let two = Scalar::from(2u32);
+
         let mut v_0 = Scalar::ZERO;
         (0..self.k).
             for_each(|i|
                 v_0 = v_0.add(witness.v[i][0].mul(self.linear_comb_coef(i, &lambda, &mu)))
             );
-        v_0 = v_0.mul(Scalar::from(2u32));
+        v_0 = v_0.mul(&two);
 
         let mut rv = vec![Scalar::ZERO; 9];
         (0..self.k).
             for_each(|i|
                 rv[0] = rv[0].add(witness.s_v[i].mul(self.linear_comb_coef(i, &lambda, &mu)))
             );
-        rv[0] = rv[0].mul(Scalar::from(2u32));
+        rv[0] = rv[0].mul(&two);
 
         let mut v_1 = vec![Scalar::ZERO; self.dim_nv - 1];
         (0..self.k).
             for_each(|i|
                 v_1 = vector_add(&v_1, &vector_mul_on_scalar(&witness.v[i][1..], &self.linear_comb_coef(i, &lambda, &mu)))
             );
-        v_1 = vector_mul_on_scalar(&v_1, &Scalar::from(2u32));
+        v_1 = vector_mul_on_scalar(&v_1, &two);
 
         let c_l0 = self.collect_cl0(&lambda, &mu);
 
@@ -403,50 +407,50 @@ impl<P> ArithmeticCircuit<P>
 
         // -1
         f_[1] = vector_mul(&c_l0, &ls).
-            add(delta.mul(&Scalar::from(2u32)).mul(&weight_vector_mul(&ns, &no, &mu)));
+            add(delta.mul(&two).mul(&weight_vector_mul(&ns, &no, &mu)));
 
         // 0
-        f_[2] = minus(&vector_mul(&c_lR, &ls).mul(&Scalar::from(2u32))).
+        f_[2] = minus(&vector_mul(&c_lR, &ls).mul(&two)).
             sub(&vector_mul(&c_l0, &lo).mul(&delta)).
-            sub(&weight_vector_mul(&ns, &vector_add(&nl, &c_nR), &mu).mul(Scalar::from(2u32))).
+            sub(&weight_vector_mul(&ns, &vector_add(&nl, &c_nR), &mu).mul(&two)).
             sub(&weight_vector_mul(&no, &no, &mu).mul(&delta2));
 
         //1
-        f_[3] = vector_mul(&c_lL, &ls).mul(&Scalar::from(2u32)).
-            add(&vector_mul(&c_lR, &lo).mul(&delta).mul(&Scalar::from(2u32))).
+        f_[3] = vector_mul(&c_lL, &ls).mul(&two).
+            add(&vector_mul(&c_lR, &lo).mul(&delta).mul(&two)).
             add(&vector_mul(&c_l0, &ll)).
-            add(&weight_vector_mul(&ns, &vector_add(&nr, &c_nL), &mu).mul(&Scalar::from(2u32))).
-            add(&weight_vector_mul(&no, &vector_add(&nl, &c_nR), &mu).mul(&Scalar::from(2u32)).mul(&delta));
+            add(&weight_vector_mul(&ns, &vector_add(&nr, &c_nL), &mu).mul(&two)).
+            add(&weight_vector_mul(&no, &vector_add(&nl, &c_nR), &mu).mul(&two).mul(&delta));
 
         // 2
         f_[4] = weight_vector_mul(&c_nR, &c_nR, &mu).
-            sub(&vector_mul(&c_lO, &ls).mul(&delta_inv).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&c_lL, &lo).mul(&delta).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&c_lR, &ll).mul(&Scalar::from(2u32))).
+            sub(&vector_mul(&c_lO, &ls).mul(&delta_inv).mul(&two)).
+            sub(&vector_mul(&c_lL, &lo).mul(&delta).mul(&two)).
+            sub(&vector_mul(&c_lR, &ll).mul(&two)).
             sub(&vector_mul(&c_l0, &lr)).
-            sub(&weight_vector_mul(&ns, &c_nO, &mu).mul(&delta_inv).mul(&Scalar::from(2u32))).
-            sub(&weight_vector_mul(&no, &vector_add(&nr, &c_nL), &mu).mul(&delta).mul(&Scalar::from(2u32))).
+            sub(&weight_vector_mul(&ns, &c_nO, &mu).mul(&delta_inv).mul(&two)).
+            sub(&weight_vector_mul(&no, &vector_add(&nr, &c_nL), &mu).mul(&delta).mul(&two)).
             sub(&weight_vector_mul(&vector_add(&nl, &c_nR), &vector_add(&nl, &c_nR), &mu));
 
         // 3 should be zero
 
         // 4
-        f_[5] = weight_vector_mul(&c_nO, &c_nR, &mu).mul(&delta_inv).mul(&Scalar::from(2u32)).
+        f_[5] = weight_vector_mul(&c_nO, &c_nR, &mu).mul(&delta_inv).mul(&two).
             add(&weight_vector_mul(&c_nL, &c_nL, &mu)).
-            sub(&vector_mul(&c_lO, &ll).mul(&delta_inv).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&c_lL, &lr).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&c_lR, &v_1).mul(&Scalar::from(2u32))).
-            sub(&weight_vector_mul(&vector_add(&nl, &c_nR), &c_nO, &mu).mul(&delta_inv).mul(&Scalar::from(2u32))).
+            sub(&vector_mul(&c_lO, &ll).mul(&delta_inv).mul(&two)).
+            sub(&vector_mul(&c_lL, &lr).mul(&two)).
+            sub(&vector_mul(&c_lR, &v_1).mul(&two)).
+            sub(&weight_vector_mul(&vector_add(&nl, &c_nR), &c_nO, &mu).mul(&delta_inv).mul(&two)).
             sub(&weight_vector_mul(&vector_add(&nr, &c_nL), &vector_add(&nr, &c_nL), &mu));
 
         // 5
-        f_[6] = minus(&weight_vector_mul(&c_nO, &c_nL, &mu).mul(&delta_inv).mul(&Scalar::from(2u32))).
-            add(&vector_mul(&c_nO, &lr).mul(&delta_inv).mul(&Scalar::from(2u32))).
-            add(&vector_mul(&c_lL, &v_1).mul(&Scalar::from(2u32))).
-            add(&weight_vector_mul(&vector_add(&nr, &c_nL), &c_nO, &mu).mul(&delta_inv).mul(&Scalar::from(2u32)));
+        f_[6] = minus(&weight_vector_mul(&c_nO, &c_nL, &mu).mul(&delta_inv).mul(&two)).
+            add(&vector_mul(&c_nO, &lr).mul(&delta_inv).mul(&two)).
+            add(&vector_mul(&c_lL, &v_1).mul(&two)).
+            add(&weight_vector_mul(&vector_add(&nr, &c_nL), &c_nO, &mu).mul(&delta_inv).mul(&two));
 
         // 6
-        f_[7] = minus(&vector_mul(&c_lO, &v_1).mul(&delta_inv).mul(&Scalar::from(2u32)));
+        f_[7] = minus(&vector_mul(&c_lO, &v_1).mul(&delta_inv).mul(&two));
 
         let beta_inv = beta.invert_vartime().unwrap();
 
@@ -483,8 +487,8 @@ impl<P> ArithmeticCircuit<P>
         pn_tau = vector_add(&pn_tau, &vector_mul_on_scalar(&c_nR, &tau));
 
         let ps_tau = weight_vector_mul(&pn_tau, &pn_tau, &mu).
-            add(&vector_mul(&lambda_vec, &self.a_l).mul(&tau3).mul(&Scalar::from(2u32))).
-            sub(&vector_mul(&mu_vec, &self.a_m).mul(&tau3).mul(&Scalar::from(2u32)));
+            add(&vector_mul(&lambda_vec, &self.a_l).mul(&tau3).mul(&two)).
+            sub(&vector_mul(&mu_vec, &self.a_m).mul(&tau3).mul(&two));
 
         let mut n_tau = vector_mul_on_scalar(&ns, &tau_inv);
         n_tau = vector_sub(&n_tau, &vector_mul_on_scalar(&no, &delta));
@@ -508,7 +512,7 @@ impl<P> ArithmeticCircuit<P>
         let mut cl_tau = vector_mul_on_scalar(&c_lO, &tau3.mul(&delta_inv));
         cl_tau = vector_sub(&cl_tau, &vector_mul_on_scalar(&c_lL, &tau2));
         cl_tau = vector_add(&cl_tau, &vector_mul_on_scalar(&c_lR, &tau));
-        cl_tau = vector_mul_on_scalar(&cl_tau, &Scalar::from(2u32));
+        cl_tau = vector_mul_on_scalar(&cl_tau, &two);
         cl_tau = vector_sub(&cl_tau, &c_l0);
 
         let mut c = [&cr_tau[..], &cl_tau[..]].concat();

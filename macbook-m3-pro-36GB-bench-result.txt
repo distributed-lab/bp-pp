@@ -6,27 +6,14 @@ test tests::wnla_works ... ignored
 
 test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-prove                   time:   [14.438 ms 14.443 ms 14.449 ms]
-                        change: [-0.0859% -0.0360% +0.0145%] (p = 0.18 > 0.05)
+prove                   time:   [14.787 ms 14.872 ms 14.960 ms]
+                        change: [+2.2480% +2.9092% +3.5405%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+
+verify                  time:   [3.7663 ms 3.7813 ms 3.7988 ms]
+                        change: [-0.6449% +0.0346% +0.7079%] (p = 0.92 > 0.05)
                         No change in performance detected.
-Found 9 outliers among 100 measurements (9.00%)
-  7 (7.00%) high mild
-  2 (2.00%) high severe
-
-verify                  time:   [3.7385 ms 3.7405 ms 3.7426 ms]
-                        change: [-1.6307% -1.4039% -1.2033%] (p = 0.00 < 0.05)
-                        Performance has improved.
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
-
-prove WNLA              time:   [661.30 µs 661.50 µs 661.72 µs]
-Found 10 outliers among 100 measurements (10.00%)
-  1 (1.00%) low mild
-  5 (5.00%) high mild
-  4 (4.00%) high severe
-
-verify WNLA             time:   [349.06 µs 349.93 µs 350.98 µs]
-Found 6 outliers among 100 measurements (6.00%)
+Found 11 outliers among 100 measurements (11.00%)
   4 (4.00%) high mild
-  2 (2.00%) high severe
+  7 (7.00%) high severe
 
