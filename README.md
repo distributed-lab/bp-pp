@@ -15,6 +15,14 @@ over [secp256k1 curve](https://docs.rs/k256/latest/k256/) that includes: weight 
 arithmetic circuit protocol and reciprocal range proofs. Also, contains the `u64` range proof protocol as a primary
 use-case for reciprocal range proofs.
 
+This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges generation as was
+recommended by Bulletproofs protocol authors.
+
+All `Proof` data models has corresponding `SerializeProof` models where [serde](https://serde.rs/) `Serialize`
+and `Deserialize` was implemented.
+
+## Performance
+
 Implemented solution has 2G points advantage over existing BP and BP+ protocols on proving of one 64-bit value and this
 advantage will increase for more values per proof.
 
@@ -24,11 +32,9 @@ advantage will increase for more values per proof.
 | BP+      | 15 | 3 |
 | Our BP++ | 13 | 3 |
 
-This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges generation as was
-recommended by Bulletproofs protocol authors.
-
-All `Proof` data models has corresponding `SerializeProof` models where [serde](https://serde.rs/) `Serialize`
-and `Deserialize` was implemented.
+On MacBook M3Pro 36GB MacOS 14.1 Rust 1.78.0 it [consumes](./macbook-m3-pro-36GB-bench-result.txt):
+- 14.361 ms average for proof generation
+- 3.8080 ms average for proof verification
 
 ## Example of usage
 
