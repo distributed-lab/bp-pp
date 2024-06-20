@@ -12,8 +12,9 @@
 
 Present Rust library contains the implementation of Bulletproofs++
 over [secp256k1 curve](https://docs.rs/k256/latest/k256/) that includes: weight norm linear argument protocol,
-arithmetic circuit protocol and reciprocal range proofs. Also, contains the `u64` range proof protocol as a primary
-use-case for reciprocal range proofs.
+arithmetic circuit protocol and reciprocal range proofs described in Distributed
+Lab's [Bulletproofs++ Construction and Examples](https://distributedlab.com/whitepaper/Bulletproofs-Construction-and-Examples.pdf).
+Also, contains the `u64` range proof protocol as a primary use-case for reciprocal range proofs.
 
 This implementation uses [Merlin transcript](https://doc.dalek.rs/merlin/index.html) for challenges generation as was
 recommended by Bulletproofs protocol authors.
@@ -33,6 +34,7 @@ advantage will increase for more values per proof.
 | Our BP++ | 13 | 3 |
 
 On MacBook M3Pro 36GB MacOS 14.1 Rust 1.78.0 it [consumes](./macbook-m3-pro-36GB-bench-result.txt):
+
 - 14.361 ms average for proof generation
 - 3.8080 ms average for proof verification
 
